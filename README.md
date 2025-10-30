@@ -4,3 +4,4 @@ Research project that tests some potential ways to improve SLIC superpixel algor
 Collaborators: 
 Chandler Calkins
 Ketsia Mbaku
+Everett-Alan Hood
