@@ -32,15 +32,16 @@ int main(int argc, char* argv[])
 	namedWindow(window_name);
 
 	Ptr<ximgproc::SuperpixelSLIC> slic = ximgproc::createSuperpixelSLIC(input_image);
+	slic->iterate();
 
 	// Creates the output image of superpixels
 	Mat output;
-	// TODO: create superpixel output
+	slic->getLabelContourMask(output);
 
 	// Displays output to a window
 	const unsigned char SCALE = 8;
 	resizeWindow(window_name, output.cols / SCALE, output.rows / SCALE);
-	imshow(window_name, input_image);
+	imshow(window_name, output);
 	waitKey(0);
 	
 	// Write output to an image file
