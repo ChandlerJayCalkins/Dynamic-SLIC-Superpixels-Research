@@ -55,8 +55,6 @@ int main(int argc, char* argv[])
 	}
 
 	// Displays output to a window
-	const unsigned char SCALE = 8;
-	resizeWindow(window_name, output.cols / SCALE, output.rows / SCALE);
 	imshow(window_name, output);
 	waitKey(0);
 	
