@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
 	const String window_name = "Superpixels";
 	namedWindow(window_name);
 
-	const int avg_superpixel_size = 50;
+	const int avg_superpixel_size = 200;
 	Ptr<ximgproc::SuperpixelSLIC> slic = ximgproc::createSuperpixelSLIC(input_image, ximgproc::SLICO, avg_superpixel_size);
 	slic->iterate();
 
