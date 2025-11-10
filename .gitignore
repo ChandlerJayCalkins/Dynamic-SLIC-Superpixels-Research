@@ -39,3 +39,10 @@
 
 # CMakeTools VSCode extension build files
 */build
+
+# VSCode settings
+*/.vscode
+
+# PNG and JPG Images
+*.png
+*.jpg

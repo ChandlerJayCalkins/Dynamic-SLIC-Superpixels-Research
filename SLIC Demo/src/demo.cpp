@@ -2,6 +2,7 @@
 // Demonstrates SLIC
 // Author: Chandler Calkins
 
+#include <iostream>
 #include <string>
 #include <direct.h>
 #include <opencv2/core.hpp>
@@ -28,15 +29,30 @@ int main(int argc, char* argv[])
 	const Mat input_image = imread("cosmo.png");
 
 	// Creates window to display output to
-	const String window_name = "Feature Matches";
+	const String window_name = "Superpixels";
 	namedWindow(window_name);
 
-	Ptr<ximgproc::SuperpixelSLIC> slic = ximgproc::createSuperpixelSLIC(input_image);
+	const int avg_superpixel_size = 50;
+	Ptr<ximgproc::SuperpixelSLIC> slic = ximgproc::createSuperpixelSLIC(input_image, ximgproc::SLICO, avg_superpixel_size);
 	slic->iterate();
 
+	// Gets overlay image of superpixels
+	Mat superpixels;
+	slic->getLabelContourMask(superpixels);
+
 	// Creates the output image of superpixels
-	Mat output;
-	slic->getLabelContourMask(output);
+	Mat output(input_image);
+	// Set each pixel in output to white if it's a superpixel border
+	for (int row = 0; row < output.rows; row += 1)
+	for (int col = 0; col < output.cols; col += 1)
+	{
+		if (superpixels.at<uchar>(row, col) != 0)
+		{
+			output.at<Vec3b>(row, col)[0] = superpixels.at<uchar>(row, col);
+			output.at<Vec3b>(row, col)[1] = superpixels.at<uchar>(row, col);
+			output.at<Vec3b>(row, col)[2] = superpixels.at<uchar>(row, col);
+		}
+	}
 
 	// Displays output to a window
 	const unsigned char SCALE = 8;
