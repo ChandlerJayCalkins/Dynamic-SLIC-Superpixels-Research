@@ -32,9 +32,12 @@ int main(int argc, char* argv[])
 	const String window_name = "Superpixels";
 	namedWindow(window_name);
 
-	const int avg_superpixel_size = 200;
-	Ptr<ximgproc::SuperpixelSLIC> slic = ximgproc::createSuperpixelSLIC(input_image, ximgproc::SLICO, avg_superpixel_size);
+	const int avg_superpixel_size = 100; // Default: 100
+	const float smoothness = 100.0f; // Default: 10.0
+	const int min_superpixel_size_percent = 5;
+	Ptr<ximgproc::SuperpixelSLIC> slic = ximgproc::createSuperpixelSLIC(input_image, ximgproc::SLIC, avg_superpixel_size, smoothness);
 	slic->iterate();
+	slic->enforceLabelConnectivity(min_superpixel_size_percent);
 
 	// Gets overlay image of superpixels
 	Mat superpixels;
