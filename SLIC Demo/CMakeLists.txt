@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(demo)
 
-set(OpenCV_DIR C:/Libraries/opencv/opencv_release/install)
+set(OpenCV_DIR C:/Libraries/opencv/contrib_release/install)
 
 find_package(OpenCV REQUIRED)
 
