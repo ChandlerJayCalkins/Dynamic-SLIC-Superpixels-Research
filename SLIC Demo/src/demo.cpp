@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
 	_chdir("../../");
 
 	// Reads the input image
-	const Mat input_image = imread("cosmo.png");
+	const Mat input_image = imread("input.jpg");
 
 	// Creates window to display output to
 	const String window_name = "Superpixels";
