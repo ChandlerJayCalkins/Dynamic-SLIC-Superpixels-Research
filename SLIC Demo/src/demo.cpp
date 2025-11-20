@@ -45,7 +45,8 @@ int main(int argc, char* argv[])
 	int superpixel_count = slic->getNumberOfSuperpixels();
 
 	// Counts how many pixels are in each superpixel
-	unsigned long* pixel_count = new unsigned long[superpixel_count];
+	// unsigned long* pixel_count = new unsigned long[superpixel_count];
+	unsigned long* pixel_count = (unsigned long*) calloc(superpixel_count, sizeof(unsigned long));
 	for (int row = 0; row < labels.rows; row += 1)
 	{
 		for (int col = 0; col < labels.cols; col += 1)
