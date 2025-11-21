@@ -52,11 +52,18 @@ class SLICHashTable {
                     curr.l_tot += lab_pixel[0];
                     curr.a_tot += lab_pixel[1];
                     curr.b_tot += lab_pixel[2];
-                    if (curr.x_range.first > col) curr.x_range.first = col;
-                    if (curr.x_range.second < col) curr.x_range.second = col;
-                    if (curr.y_range.first > row) curr.y_range.first = row;
-                    if (curr.y_range.second < row) curr.y_range.second = row;
-                    if (curr.original_image != &input_image) curr.original_image = &input_image;
+                    if (curr.pixel_count == 0) {
+                        curr.x_range.first = col;
+                        curr.x_range.second = col;
+                        curr.y_range.first = row;
+                        curr.y_range.second = row;
+                        curr.original_image = &input_image;
+                    } else {
+                        if (curr.x_range.first > col) curr.x_range.first = col;
+                        if (curr.x_range.second < col) curr.x_range.second = col;
+                        if (curr.y_range.first > row) curr.y_range.first = row;
+                        if (curr.y_range.second < row) curr.y_range.second = row;
+                    }
                     curr.pixel_count += 1;
                     // hash superpixel if all subpixels have been found
                     // sp hashes to histogram[l bucket][a bucket][b bucket][x bucket][y bucket]
