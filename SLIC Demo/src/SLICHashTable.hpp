@@ -3,6 +3,7 @@
 
 #include <opencv2/core/mat.hpp>
 #include <stdlib.h>
+#include <unordered_map>
 
 /*** a HashKey pointer will point to an array of size superpixel_count (+1 if labels start at 1), 
 in which HashKeys will occupy the indices of the superpixels they represent.
@@ -17,7 +18,6 @@ typedef struct {
 
 class SLICHashTable {
     private:
-        cv::Mat hist;
         const int n = 5;
         // this implementation assumes 8-bit unsigned integer images
         const int lab_buckets = 16;
@@ -30,19 +30,42 @@ class SLICHashTable {
         const int y_bucket_size = max_img_h / y_buckets;
         int dims[5] = {lab_buckets, lab_buckets, lab_buckets, x_buckets, y_buckets};
 
-    public:
-        // hash table structure: sparse 5D histogram where bucket location is discretized based on x range, y range, and average color
-        SLICHashTable() {
-            hist = cv::Mat(n, dims, CV_32FC1, cv::Scalar::all(0));
+        int calculate_hash_key(const HashKey& key) {
+            if (key.pixel_count == 0) return -1;
+
+            float l_avg = (float)key.l_tot / key.pixel_count;
+            float a_avg = (float)key.a_tot / key.pixel_count;
+            float b_avg = (float)key.b_tot / key.pixel_count;
+            float x_center = (key.x_range.first + key.x_range.second) / 2.0f;
+            float y_center = (key.y_range.first + key.y_range.second) / 2.0f;
+
+            int l_bucket = (int)(l_avg / lab_bucket_size);
+            int a_bucket = (int)(a_avg / lab_bucket_size);
+            int b_bucket = (int)(b_avg / lab_bucket_size);
+            int x_bucket = (int)(x_center / x_bucket_size);
+            int y_bucket = (int)(y_center / y_bucket_size);
+
+            l_bucket = std::max(0, std::min(l_bucket, dims[0] - 1));
+            a_bucket = std::max(0, std::min(a_bucket, dims[1] - 1));
+            b_bucket = std::max(0, std::min(b_bucket, dims[2] - 1));
+            x_bucket = std::max(0, std::min(x_bucket, dims[3] - 1));
+            y_bucket = std::max(0, std::min(y_bucket, dims[4] - 1));
+
+            int hash_key = l_bucket;
+            hash_key = hash_key * dims[1] + a_bucket;
+            hash_key = hash_key * dims[2] + b_bucket;
+            hash_key = hash_key * dims[3] + x_bucket;
+            hash_key = hash_key * dims[4] + y_bucket;
+
+            return hash_key;
         }
+
+    public:
+        std::unordered_map<int, std::vector<HashKey>> hashTable;
 
         // called for hashing segmented images, and storing them in the instance of this class
         // expects a cielab image for input_image
-        void Hash(const cv::Mat& input_image,
-                  const cv::Mat& labels,
-                  int superpixel_count,
-                  unsigned long* pixel_count)
-        {
+        void Hash(const cv::Mat& input_image, const cv::Mat& labels, int superpixel_count, unsigned long* pixel_count) {
             HashKey *superpixels = (HashKey*) calloc(superpixel_count, sizeof(HashKey));
             for (int row = 0; row < labels.rows; row++) {
                 for (int col = 0; col < labels.cols; col++) {
@@ -66,12 +89,15 @@ class SLICHashTable {
                     }
                     curr.pixel_count += 1;
                     // hash superpixel if all subpixels have been found
-                    // sp hashes to histogram[l bucket][a bucket][b bucket][x bucket][y bucket]
                     if (curr.pixel_count == pixel_count[sp]) {
-
+                        int key = calculate_hash_key(curr);
+                        if (key != -1) {
+                            hashTable[key].push_back(curr);
+                        }
                     }
                 }
             }
+            free(superpixels);
         }
 };
 
