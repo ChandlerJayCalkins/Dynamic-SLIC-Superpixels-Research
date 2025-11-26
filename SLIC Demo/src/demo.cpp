@@ -4,7 +4,12 @@
 
 #include <iostream>
 #include <string>
-#include <direct.h>
+#ifdef _WIN32
+    #include <direct.h>
+    #define chdir _chdir
+#else
+    #include <unistd.h>
+#endif
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/ximgproc/slic.hpp>

@@ -46,3 +46,9 @@
 # PNG and JPG Images
 *.png
 *.jpg
+
+# Project directories
+opencv_slic/
+ketsia_docs/
+.github/
+.context/
