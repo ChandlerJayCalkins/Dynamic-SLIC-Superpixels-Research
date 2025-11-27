@@ -22,13 +22,6 @@ namespace ltridp_slic_improved {
 
 void Preprocessor::applyGammaTransformation(const Mat& input, Mat& output, double gamma) {
     /*
-    TODO: Add these checks in public method
-        CV_Assert(!input.empty());
-        CV_Assert(input.depth() == CV_8U);
-        CV_Assert(gamma > 0.0);
-    */
-
-    /*
      * I'(x,y) = 255 * (I(x,y)/255)^γ 
      * with γ = 0.5.
      */

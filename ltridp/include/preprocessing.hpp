@@ -77,8 +77,7 @@ private:
      * @pre input must be non-empty CV_8U type
      * @post output has same dimensions and channels as input
      */
-    void apply3DHistogramReconstruction(const cv::Mat& input, 
-                                       cv::Mat& output);
+    void apply3DHistogramReconstruction(const cv::Mat& input, cv::Mat& output);
     
     /**
      * applyGammaTransformation Apply gamma transformation (paper Section 3.2)
@@ -99,9 +98,7 @@ private:
      * Postconditions:
      * output contains gamma-corrected intensities
      */
-    void applyGammaTransformation(const cv::Mat& input,
-                                  cv::Mat& output,
-                                  double gamma);
+    void applyGammaTransformation(const cv::Mat& input, cv::Mat& output, double gamma);
 };
 
 }
