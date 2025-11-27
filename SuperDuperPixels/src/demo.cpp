@@ -1,5 +1,5 @@
 // Demo.cpp
-// Demonstrates SLIC
+// Demonstrates SD-SLIC (Super Duper - Simple Linear Iterative Clustering)
 // Author: Chandler Calkins
 
 #include <iostream>
@@ -16,7 +16,7 @@
 #include "sd_slic.hpp"
 using namespace cv;
 
-// main - Generates superpixels for an images using SLIC and displays those superpixels on the image.
+// main - Generates superpixels for an images using SD-SLIC and displays those superpixels on the image.
 //
 // Preconditions:
 //
@@ -24,7 +24,7 @@ using namespace cv;
 //
 // Postconditions:
 //
-// A file called output.jpg should be in the project folder.
+// A file called output.png should be in the project folder.
 int main(int argc, char* argv[])
 {
 	// Move out of build/Debug into root of project folder
