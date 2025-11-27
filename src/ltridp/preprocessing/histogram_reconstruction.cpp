@@ -1,16 +1,10 @@
 /**
  * @file histogram_reconstruction.cpp
  * @brief Implementation of 3D histogram reconstruction for MRI images
- * 
- * This file implements the 3D histogram reconstruction method described in
- * "Image Segmentation of Brain MRI Based on LTriDP and Superpixels of Improved SLIC"
- * (Brain Sciences, 2020). The method uses three statistical measures per pixel
- * (gray value, mean, median) to create a 3D histogram and correct pixels based
- * on their deviation from the diagonal.
- * 
- * Reference: Section 3.1 of the paper, based on reference [19]
- * 
+ *
  * @author Ketsia Ambaku
+ * 
+ * Reference:
  *         Y. Wang, Q. Qi, and X. Shen, "Image Segmentation of Brain MRI Based on
  *         LTriDP and Superpixels of Improved SLIC," Brain Sciences, vol. 10, no. 2,
  *         p. 116, 2020.
@@ -32,12 +26,6 @@ enum class RegionGroup {
 /**
  * @brief 
  * Classify (f, g, h) into the eight histogram regions described in Section 3.1
- * 
- *
- * The paper describes the regions by examining which pair among (f, g, h)
- * remains closest to the diagonal. We emulate that behavior by treating the
- * remaining value as the outlier and mapping it to the corresponding region
- * group. A small tolerance lets us collapse near-ties back to GROUP_0_1.
  */
 RegionGroup classifyRegionGroup(float grayValue,
                                 float localMean,
@@ -49,43 +37,28 @@ RegionGroup classifyRegionGroup(float grayValue,
 
     if (distanceFG > distanceGH + tieTolerance &&
         distanceFH > distanceGH + tieTolerance) {
-        return RegionGroup::GROUP_2_3;  // g and h stay close, f is outlier
+        return RegionGroup::GROUP_2_3;  // f is outlier
     }
 
     if (distanceFG > distanceFH + tieTolerance &&
         distanceGH > distanceFH + tieTolerance) {
-        return RegionGroup::GROUP_4_5;  // f and h stay close, g is outlier
+        return RegionGroup::GROUP_4_5;  // g is outlier
     }
 
     if (distanceFH > distanceFG + tieTolerance &&
         distanceGH > distanceFG + tieTolerance) {
-        return RegionGroup::GROUP_6_7;  // f and g stay close, h is outlier
+        return RegionGroup::GROUP_6_7;  // h is outlier
     }
 
-    return RegionGroup::GROUP_0_1;  // all mutually close → near-diagonal
+    return RegionGroup::GROUP_0_1;  // all relatively close
 }
 
-}  // namespace
+} // namespace
 
 namespace ltridp_slic_improved {
 
-void Preprocessor::apply3DHistogramReconstruction(const cv::Mat& input, 
-                                                  cv::Mat& output) {
+void Preprocessor::apply3DHistogramReconstruction(const cv::Mat& input, cv::Mat& output) {
     /**
-     * 3D Histogram Reconstruction Algorithm (from paper Section 3.1)
-     * 
-     * Purpose: Reconstruct gray values of medical images to reduce noise
-     * and intensity non-uniformity caused by imaging equipment limitations.
-     * 
-     * The "3D" refers to three values per pixel:
-     * - f(x,y): actual gray value
-     * - g(x,y): mean of 3×3 neighborhood
-     * - h(x,y): median of 3×3 neighborhood
-     * 
-     * For uniform images, these triples (f, g, h) should lie along the
-     * diagonal of a 3D histogram. Pixels that deviate are corrected based
-     * on which of 8 regions they fall into.
-     * 
      * Algorithm:
      * 1. For each pixel, compute f, g (mean), h (median) from 3×3 neighborhood
      * 2. Determine which of 8 regions the triple (f, g, h) falls into
@@ -105,11 +78,10 @@ void Preprocessor::apply3DHistogramReconstruction(const cv::Mat& input,
         grayImage = input.clone();
     }
     
-    // Convert to float for precise computation
+    // Convert to float for precision
     cv::Mat floatImage;
     grayImage.convertTo(floatImage, CV_32F);
     
-    // Create output matrix
     cv::Mat reconstructed = cv::Mat::zeros(floatImage.size(), CV_32F);
     
     int rows = floatImage.rows;
@@ -118,7 +90,6 @@ void Preprocessor::apply3DHistogramReconstruction(const cv::Mat& input,
     // Process each pixel
     for (int y = 0; y < rows; ++y) {
         for (int x = 0; x < cols; ++x) {
-            // Get pixel value f(x,y)
             float f = floatImage.at<float>(y, x);
             
             // Compute mean g(x,y) of 3×3 neighborhood
@@ -150,17 +121,16 @@ void Preprocessor::apply3DHistogramReconstruction(const cv::Mat& input,
             std::sort(neighborhood.begin(), neighborhood.end());
             float h = neighborhood[neighborhood.size() / 2];
             
-            // Determine region and apply correction (Section 3.1, Eq. (1)-(4))
             float f_star = f;
             float g_star = g;
             float h_star = h;
 
-            constexpr float kTieTolerance = 1.0f;  // keeps near-diagonal triples unmodified
+            constexpr float kTieTolerance = 0.0f;  // can increase later to allow more ties
             const RegionGroup group = classifyRegionGroup(f, g, h, kTieTolerance);
 
             switch (group) {
                 case RegionGroup::GROUP_0_1:
-                    // Keep original triple
+                    // no correction
                     break;
                 case RegionGroup::GROUP_2_3:
                     f_star = (g + h) / 2.0f;
@@ -174,20 +144,18 @@ void Preprocessor::apply3DHistogramReconstruction(const cv::Mat& input,
                     break;
             }
             
-            // Compute final reconstructed value (Equation 4)
+            // Compute final reconstructed value
             float reconstructedValue = (f_star + g_star + h_star) / 3.0f;
             reconstructed.at<float>(y, x) = reconstructedValue;
         }
     }
     
-    // Convert back to appropriate format
+    // Convert back to original format
     if (input.channels() == 3) {
-        // Convert grayscale back to BGR
         reconstructed.convertTo(reconstructed, CV_8U);
         cv::cvtColor(reconstructed, output, cv::COLOR_GRAY2BGR);
     } else {
         reconstructed.convertTo(output, CV_8U);
     }
 }
-
 }
