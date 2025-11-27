@@ -4,7 +4,12 @@ project(SuperDuperPixels)
 
 set(OpenCV_DIR C:/Libraries/opencv/contrib_release/install)
 
-find_package(OpenCV REQUIRED)
+# Request the core components we use. If your OpenCV was built with contrib
+# and you prefer to use the installed ximgproc module instead of copying
+# the implementation here, add `ximgproc` to the COMPONENTS list.
+find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui)
 
-add_executable(${PROJECT_NAME} src/demo.cpp)
+include_directories(${OpenCV_INCLUDE_DIRS})
+
+add_executable(${PROJECT_NAME} src/demo.cpp src/sd_slic.cpp)
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})

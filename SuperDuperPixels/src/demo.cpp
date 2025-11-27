@@ -12,7 +12,8 @@
 #endif
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
-#include <opencv2/ximgproc/slic.hpp>
+// #include <opencv2/ximgproc/slic.hpp>
+#include "sd_slic.hpp"
 using namespace cv;
 
 // main - Generates superpixels for an images using SLIC and displays those superpixels on the image.
@@ -40,7 +41,8 @@ int main(int argc, char* argv[])
 	const int avg_superpixel_size = 100; // Default: 100
 	const float smoothness = 100.0f; // Default: 10.0
 	const int min_superpixel_size_percent = 4;
-	Ptr<ximgproc::SuperpixelSLIC> slic = ximgproc::createSuperpixelSLIC(input_image, ximgproc::SLIC, avg_superpixel_size, smoothness);
+	// Ptr<ximgproc::SuperpixelSLIC> slic = ximgproc::createSuperpixelSLIC(input_image, ximgproc::SLIC, avg_superpixel_size, smoothness);
+	Ptr<SuperpixelSLIC> slic = createSuperpixelSLIC(input_image, SLIC, avg_superpixel_size, smoothness);
 	slic->iterate();
 	slic->enforceLabelConnectivity(min_superpixel_size_percent);
 
