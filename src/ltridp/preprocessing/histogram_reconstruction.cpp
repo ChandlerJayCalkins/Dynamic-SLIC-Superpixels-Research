@@ -2,7 +2,7 @@
  * @file histogram_reconstruction.cpp
  * @brief Implementation of 3D histogram reconstruction for MRI images
  *
- * @author Ketsia Ambaku
+ * @author Ketsia Mbaku
  * 
  * Reference:
  *         Y. Wang, Q. Qi, and X. Shen, "Image Segmentation of Brain MRI Based on
