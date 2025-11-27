@@ -47,21 +47,19 @@ public:
      * 
      * @param inputImage Input MRI image (grayscale)
      * @param outputImage Enhanced output image
-     * @param gamma Gamma correction parameter (default: 1.0, range: 0.5-2.0)
-     *              - gamma < 1.0: brightens image
-     *              - gamma = 1.0: no change
-     *              - gamma > 1.0: darkens image
+     * @param gamma Gamma correction parameter (default: 0.5 per paper Section 3.2)
+
      * @return true if successful, false otherwise
      * 
      * @pre inputImage must be non-empty
-     * @pre inputImage must be CV_8U type (8-bit unsigned)
-     * @pre gamma must be > 0
+     * @pre inputImage must be CV_8U
+     * @pre gamma > 0
      * 
      * @post outputImage contains preprocessed image with same dimensions as input
      */
     bool enhance(const cv::Mat& inputImage, 
                 cv::Mat& outputImage, 
-                double gamma = 1.0);
+                double gamma = 0.5);
     
 private:
     /**
@@ -81,6 +79,29 @@ private:
      */
     void apply3DHistogramReconstruction(const cv::Mat& input, 
                                        cv::Mat& output);
+    
+    /**
+     * applyGammaTransformation Apply gamma transformation (paper Section 3.2)
+     * 
+     * Performs point-wise gamma correction using:
+     *   output(x,y) = 255 * ( input(x,y) / 255 )^gamma
+     * where gamma controls brightness/contrast of the MRI slice.
+     * 
+     * Parameters:
+     * input Input grayscale image
+     * output Gamma-adjusted output (same size/type as input)
+     * Gamma exponent (we will use 0.5 for experimentation like in paper)
+     *
+     * Preconditions:
+     * input must be non-empty CV_8U
+     * gamma > 0.0
+     * 
+     * Postconditions:
+     * output contains gamma-corrected intensities
+     */
+    void applyGammaTransformation(const cv::Mat& input,
+                                  cv::Mat& output,
+                                  double gamma);
 };
 
 }
