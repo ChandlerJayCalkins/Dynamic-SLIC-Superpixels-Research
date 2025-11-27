@@ -28,10 +28,10 @@ int main(int argc, char* argv[])
 {
 	// Move out of build/Debug into root of project folder
 	// Use this for VSCode, comment out for Visual Studio / actual submission
-	_chdir("../../");
+	chdir("../../");
 
 	// Reads the input image
-	const Mat input_image = imread("input.jpg");
+	const Mat input_image = imread("input.png");
 
 	// Creates window to display output to
 	const String window_name = "Superpixels";
@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
 	waitKey(0);
 	
 	// Write output to an image file
-	imwrite("output.jpg", output);
+	imwrite("output.png", output);
 
 	return 0;
 }
