@@ -3,7 +3,7 @@
 
 # Source files
 set(PREPROCESSING_SOURCES
-    preprocessor.cpp
+    preprocessing.cpp
     histogram_reconstruction.cpp
     gamma_transformation.cpp
 )

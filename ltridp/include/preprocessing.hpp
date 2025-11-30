@@ -63,12 +63,44 @@ public:
     
 private:
     /**
+     * @brief Region groups for 3D histogram classification
+     * The eight histogram regions from Section 3.1 are grouped into
+     * four region groups based on which value (f, g, h) is an outlier
+     */
+    enum class RegionGroup {
+        GROUP_0_1, 
+        GROUP_2_3,
+        GROUP_4_5,
+        GROUP_6_7
+    };
+    
+    /**
+     * @brief Classify into region groups based on pairwise distances
+     * Uses the three pairwise distances |f-g|, |f-h|, |g-h| to determine
+     * which value is an outlier from the other two.
+     * 
+     * Parameters:
+     * grayValue f(x,y) - actual pixel gray value
+     * localMean g(x,y) - mean of 3×3 neighborhood
+     * localMedian h(x,y) - median of 3×3 neighborhood
+     * tieTolerance Tolerance for considering distances equal
+     * 
+     * Return Value:
+     * RegionGroup classification
+     */
+    RegionGroup classifyRegionGroup(float grayValue,
+                                    float localMean,
+                                    float localMedian,
+                                    float tieTolerance) const;
+    
+    /**
      * @brief Apply 3D histogram reconstruction from paper Section 3.1
      * 
      * Uses three statistical measures per pixel to create a 3D histogram:
-     * - f(x,y): actual gray value
-     * - g(x,y): mean of 3×3 neighborhood
-     * - h(x,y): median of 3×3 neighborhood
+     * grayValue f(x,y) - actual pixel gray value
+     * localMean g(x,y) - mean of 3×3 neighborhood
+     * localMedian h(x,y) - median of 3×3 neighborhood
+     * tieTolerance Tolerance for considering distances equal
      * Corrects pixels based on their deviation from the diagonal in 3D space
      * 
      * @param input Input image (grayscale)
