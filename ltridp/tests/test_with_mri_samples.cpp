@@ -1,11 +1,10 @@
 /**
- * @file test_with_mri_samples.cpp
- * @brief Test preprocessing pipeline with real MRI images
- * 
+ * file: test_with_mri_samples.cpp
+ * Test preprocessing pipeline with real MRI images
  * Processes MRI images from data/input/ directory, applies preprocessing,
  * and saves results to data/output/ with statistics.
  * 
- * @author Ketsia Mbaku
+ * Author: Ketsia Mbaku
  */
 
 #include <opencv2/opencv.hpp>
@@ -92,7 +91,6 @@ int main(int argc, char** argv) {
         
         displayStats("After", output);
 
-        
         std::string stem = imagePath.stem().string();
         std::string ext = imagePath.extension().string();
         std::string outputPath = outputDir + "/" + stem + "_preprocessed" + ext;
