@@ -24,7 +24,7 @@ bool Preprocessor::enhance(const Mat& inputImage, Mat& outputImage, double gamma
     // Input validation
     if (inputImage.empty()) return false;
     if (inputImage.depth() != CV_8U) return false;
-    if (gamma <= 0.0) return false;
+    if (gamma <= 0.0 || std::isnan(gamma)) return false;
     
     Mat reconstructed;
     apply3DHistogramReconstruction(inputImage, reconstructed);
