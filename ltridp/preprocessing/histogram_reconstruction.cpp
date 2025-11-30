@@ -14,23 +14,12 @@
 #include <opencv2/imgproc.hpp>
 #include <cmath>
 
-namespace {
+namespace ltridp_slic_improved {
 
-enum class RegionGroup {
-    GROUP_0_1,
-    GROUP_2_3,
-    GROUP_4_5,
-    GROUP_6_7
-};
-
-/**
- * @brief 
- * Classify (f, g, h) into the eight histogram regions described in Section 3.1
- */
-RegionGroup classifyRegionGroup(float grayValue,
-                                float localMean,
-                                float localMedian,
-                                float tieTolerance) {
+Preprocessor::RegionGroup Preprocessor::classifyRegionGroup(float grayValue,
+                                                            float localMean,
+                                                            float localMedian,
+                                                            float tieTolerance) const {
     const float distanceFG = std::abs(grayValue - localMean);
     const float distanceFH = std::abs(grayValue - localMedian);
     const float distanceGH = std::abs(localMean - localMedian);
@@ -52,10 +41,6 @@ RegionGroup classifyRegionGroup(float grayValue,
 
     return RegionGroup::GROUP_0_1;  // all relatively close
 }
-
-} // namespace
-
-namespace ltridp_slic_improved {
 
 void Preprocessor::apply3DHistogramReconstruction(const cv::Mat& input, cv::Mat& output) {
     /**
