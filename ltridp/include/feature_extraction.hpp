@@ -46,8 +46,7 @@ public:
     /**
      * @brief Extracts LTriDP texture features from an image
      * 
-     * Computes the Local Tri-Directional Pattern descriptor for each pixel
-     * by analyzing magnitude relationships in 8 neighborhood directions.
+     * Computes the Local Tri-Directional Pattern descriptor for each pixel.
      * The output is a single-channel feature map with values [0, 255]
      * representing the LTriDP code for each pixel.
      * 

@@ -26,7 +26,7 @@ bool FeatureExtractor::extract(const cv::Mat& inputImage, cv::Mat& featureMap) {
     if (inputImage.depth() != CV_8U) return false;
     if (inputImage.rows < 3 || inputImage.cols < 3) return false;
     
-    // Convert to grayscale if needed
+    // Convert to grayscale if image is in color
     cv::Mat grayImage;
     if (inputImage.channels() == 3) {
         cv::cvtColor(inputImage, grayImage, cv::COLOR_BGR2GRAY);
@@ -34,10 +34,8 @@ bool FeatureExtractor::extract(const cv::Mat& inputImage, cv::Mat& featureMap) {
         grayImage = inputImage.clone();
     }
     
-    // Convert to float for precise computation
     cv::Mat floatImage;
     grayImage.convertTo(floatImage, CV_32F);
-    
     featureMap = cv::Mat::zeros(floatImage.size(), CV_8U);
     int rows = floatImage.rows;
     int cols = floatImage.cols;
@@ -47,7 +45,7 @@ bool FeatureExtractor::extract(const cv::Mat& inputImage, cv::Mat& featureMap) {
             // get 3x3 neighborhood
             float neighbors[9];
             extractNeighborhood(floatImage, row, col, neighbors);
-            
+
             // compute and store LTriDP code
             unsigned char code = computeLTriDPCode(neighbors);
             featureMap.at<unsigned char>(row, col) = code;

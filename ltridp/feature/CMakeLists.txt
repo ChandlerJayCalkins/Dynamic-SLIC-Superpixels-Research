@@ -1,6 +1,3 @@
-# Feature extraction module
-# Implements Local Tri-Directional Pattern (LTriDP) texture descriptor
-
 # Source files
 set(FEATURE_SOURCES
     feature_extraction.cpp
