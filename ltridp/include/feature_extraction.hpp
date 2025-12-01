@@ -71,8 +71,22 @@ public:
     
 private:
     unsigned char computeLTriDPCode(const float neighbors[9]) const;
-    
-    void extractNeighborhood(const cv::Mat& image, int x, int y, float neighbors[9]) const;
+
+    /**
+     * @brief Extract 3×3 neighborhood gray values around a pixel
+     * 
+    * Parameters:
+     * @param image Input image (CV_32F)
+     * @param row center pixel row-coordinate
+     * @param col center pixel column-coordinate
+     * @param neighbors Output array of 9 gray values
+     * 
+     * Pre-conditions:
+     * @pre row, col must be at least 1 pixel from image border
+     * Post-conditions:
+     * @post neighbors contains [g1, g2, ..., g8, gc] 8 gray neighbor values + center
+     */
+    void extractNeighborhood(const cv::Mat& image, int row, int col, float neighbors[9]) const;
 };
 
 } // namespace ltridp_slic_improved
