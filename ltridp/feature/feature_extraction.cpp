@@ -55,8 +55,24 @@ bool FeatureExtractor::extract(const cv::Mat& inputImage, cv::Mat& featureMap) {
     return true;
 }
 
-void FeatureExtractor::extractNeighborhood(const cv::Mat& image, int x, int y, float neighbors[9]) {
-     // TODO: Implement neighborhood extraction
+void FeatureExtractor::extractNeighborhood(const cv::Mat& image, int row, int col, float neighbors[9]) {
+    /**
+     * gc is the center pixel at (x,y)
+     * gi are the neighbors indexed clockwise from right:
+     *     g6  g7  g8
+     *     g5  gc  g1
+     *     g4  g3  g2
+     */
+
+    neighbors[0] = image.at<float>(row,   col+1);  
+    neighbors[1] = image.at<float>(row+1, col+1); 
+    neighbors[2] = image.at<float>(row+1, col);  
+    neighbors[3] = image.at<float>(row+1, col-1);
+    neighbors[4] = image.at<float>(row,   col-1); 
+    neighbors[5] = image.at<float>(row-1, col-1); 
+    neighbors[6] = image.at<float>(row-1, col);
+    neighbors[7] = image.at<float>(row-1, col+1);
+    neighbors[8] = image.at<float>(row,   col);
 }
 
 unsigned char FeatureExtractor::computeLTriDPCode(const float neighbors[9]) const {
