@@ -1,0 +1,16 @@
+# --- Core ---
+numpy
+opencv-contrib-python           # OpenCV + SIFT + ximgproc (SLIC)
+matplotlib
+
+# --- COCO dataset ---
+pycocotools                     # COCO API (annotations support)
+
+# --- Machine Learning / Utility ---
+scikit-learn                    # (optional) future BoVW clustering, metrics
+scikit-image                    # (optional) for comparison SLIC or image ops
+
+# --- Development / tooling ---
+jupyterlab                      # notebook development
+tqdm                            # progress bars (optional but useful)
+cv2
