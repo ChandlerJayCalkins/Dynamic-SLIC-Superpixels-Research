@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
 	const float smoothness = 100.0f; // Default: 10.0
 	const int min_superpixel_size_percent = 4;
 	Ptr<ximgproc::SuperpixelSLIC> slic = ximgproc::createSuperpixelSLIC(input_image, ximgproc::SLIC, avg_superpixel_size, smoothness);
-	slic->iterate();
+	slic->iterate(1);
 	slic->enforceLabelConnectivity(min_superpixel_size_percent);
 
 	// Gets 2D array of the superpixel each pixel is a part of
