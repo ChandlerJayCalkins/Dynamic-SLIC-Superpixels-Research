@@ -1298,9 +1298,14 @@ struct SLICGrowInvoker : ParallelLoopBody
         {
           float dist = 0;
 
+		  // Distance calculation between pixel color and superpixel seed color
+		  // Does same calculation for each switch case
+		  // Just needs to determine the channel type of the mat to call methods properly
           switch ( chvec->at(0).depth() )
           {
             case CV_8U:
+			  // Finds difference in each color dimension between pixel and seed
+			  // Squares difference and adds it to total color distance (euclidian distance formula)
               for( int b = 0; b < nr_channels; b++ )
               {
                 float diff = chvec->at(b).at<uchar>(y,x) - kseeds->at(b)[n];
@@ -1361,6 +1366,7 @@ struct SLICGrowInvoker : ParallelLoopBody
               break;
           }
 
+		  // Distance calculation from pixel to superpixel seed
           float difx = x - kseedsxn;
           float dify = y - kseedsyn;
           float distxy = difx*difx + dify*dify;
