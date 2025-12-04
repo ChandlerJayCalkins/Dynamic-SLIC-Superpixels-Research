@@ -694,11 +694,13 @@ void SuperpixelSLICImpl::duperize(int num_buckets[])
 		{
 			int superpixel_to_left = m_klabels.at<int>(y, x - 1);
 			superpixel_connections[current_superpixel].insert(superpixel_to_left);
+			superpixel_connections[superpixel_to_left].insert(current_superpixel);
 		}
 		if (not_top_row)
 		{
 			int superpixel_above = m_klabels.at<int>(y - 1, x);
 			superpixel_connections[current_superpixel].insert(superpixel_above);
+			superpixel_connections[superpixel_above].insert(current_superpixel);
 		}
 
 		// Keeps count of the number of pixels in each superpixel (for calculating average color)
