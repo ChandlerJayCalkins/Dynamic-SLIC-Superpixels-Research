@@ -44,27 +44,29 @@ int main(int argc, char* argv[])
 	// Ptr<ximgproc::SuperpixelSLIC> slic = ximgproc::createSuperpixelSLIC(input_image, ximgproc::SLIC, avg_superpixel_size, smoothness);
 	Ptr<SuperpixelSLIC> slic = createSuperpixelSLIC(input_image, SLIC, avg_superpixel_size, smoothness);
 	slic->iterate(1);
+	int num_buckets[] = {2, 2, 2};
 	slic->enforceLabelConnectivity(min_superpixel_size_percent);
+	slic->duperize(num_buckets);
 
-	// Gets 2D array of the superpixel each pixel is a part of
-	Mat labels;
-	slic->getLabels(labels);
-	int superpixel_count = slic->getNumberOfSuperpixels();
+	// // Gets 2D array of the superpixel each pixel is a part of
+	// Mat labels;
+	// slic->getLabels(labels);
+	// int superpixel_count = slic->getNumberOfSuperpixels();
 
-	// Counts how many pixels are in each superpixel
-	unsigned long* pixel_count = (unsigned long*) calloc(superpixel_count, sizeof(unsigned long));
-	for (int row = 0; row < labels.rows; row += 1)
-	{
-		for (int col = 0; col < labels.cols; col += 1)
-		{
-			pixel_count[labels.at<int>(row, col)] += 1;
-		}
-	}
-	// Prints out the pixel count of each superpixel
-	for (int i = 0; i < superpixel_count; i += 1)
-	{
-		std::cout << i << ": " << pixel_count[i] << std::endl;
-	}
+	// // Counts how many pixels are in each superpixel
+	// unsigned long* pixel_count = (unsigned long*) calloc(superpixel_count, sizeof(unsigned long));
+	// for (int row = 0; row < labels.rows; row += 1)
+	// {
+	// 	for (int col = 0; col < labels.cols; col += 1)
+	// 	{
+	// 		pixel_count[labels.at<int>(row, col)] += 1;
+	// 	}
+	// }
+	// // Prints out the pixel count of each superpixel
+	// for (int i = 0; i < superpixel_count; i += 1)
+	// {
+	// 	std::cout << i << ": " << pixel_count[i] << std::endl;
+	// }
 
 	// Gets overlay image of superpixels
 	Mat superpixels;

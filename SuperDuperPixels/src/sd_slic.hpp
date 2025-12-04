@@ -131,6 +131,20 @@ public:
      */
     CV_WRAP virtual void enforceLabelConnectivity( int min_element_size = 25 ) = 0;
 
+	//////////////////////////////////////////////////
+	//
+	// Custom methods
+	//
+	//////////////////////////////////////////////////
+	
+	/** @brief Combines adjacent superpixels into super-duper-pixels if they're similar enough in color.
+
+    @param num_buckets Each element in the array is the number of buckets to separate colors into in the
+	color histograms of each superpixel. The array must be the same size as the number of channels in the
+	image.
+     */
+	CV_WRAP virtual void duperize(int num_buckets[]) = 0;
+
 
 };
 
