@@ -54,3 +54,15 @@ opencv_slic/
 ketsia_docs/
 .github/
 .context/
+
+# Images being used for the SLIC demo or for SuperDuperPixels
+SLIC Demo/*.png
+SLIC Demo/*.jpg
+SLIC Demo/*.jpeg
+SuperDuperPixels/*.png
+SuperDuperPixels/*.jpg
+SuperDuperPixels/*.jpeg
+
+# Include images in an img directory for the SLIC demo or for SuperDuperPixels
+!SLIC Demo/img/*
+!SuperDuperPixels/img/*
