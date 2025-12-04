@@ -760,6 +760,8 @@ void SuperpixelSLICImpl::duperizeWithAverage(float distance)
 
 	// TODO: Group superpixels based on average color
 
+	// TODO: Change m_klabels so pixel labels use proper superduperpixel labels
+
 	// TODO: Resize m_numlabels after duperizing
 }
 
@@ -906,6 +908,8 @@ void SuperpixelSLICImpl::duperizeWithHistogram(int num_buckets[])
 	}
 
 	// TODO: Treat each precentage histogram as a point in space and measure distances between them to group superpixels
+
+	// TODO: Change m_klabels so pixel labels use proper superduperpixel labels
 
 	// TODO: Resize m_numlabels after duperizing
 }
