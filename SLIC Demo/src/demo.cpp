@@ -31,7 +31,15 @@ int main(int argc, char* argv[])
 	chdir("../../");
 
 	// Reads the input image
-	const Mat input_image = imread("input.png");
+	Mat input_image;
+	FILE* file;
+	if (fopen_s(&file, "input.jpg", "r") == 0) input_image = imread("input.jpg");
+	else if (fopen_s(&file, "input.png", "r") == 0) input_image = imread("input.png");
+	else
+	{
+		std::cerr << "ERROR: No input file found / accessible. This program needs an 'input.jpg' or 'input.png' file in the same folder to work.\n";
+		return 1;
+	}
 
 	// Creates window to display output to
 	const String window_name = "Superpixels";

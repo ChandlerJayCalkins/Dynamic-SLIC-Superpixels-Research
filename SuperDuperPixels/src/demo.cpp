@@ -28,11 +28,19 @@ using namespace cv;
 int main(int argc, char* argv[])
 {
 	// Move out of build/Debug into root of project folder
-	// Use this for VSCode, comment out for Visual Studio / actual submission
+	// Use this for VSCode, comment out for Visual Studio / any setups where the input file is in the same folder as the executable
 	chdir("../../");
 
 	// Reads the input image
-	const Mat input_image = imread("input.png");
+	Mat input_image;
+	FILE* file;
+	if (fopen_s(&file, "input.jpg", "r") == 0) input_image = imread("input.jpg");
+	else if (fopen_s(&file, "input.png", "r") == 0) input_image = imread("input.png");
+	else
+	{
+		std::cerr << "ERROR: No input file found / accessible. This program needs an 'input.jpg' or 'input.png' file in the same folder to work.\n";
+		return 1;
+	}
 
 	// Creates window to display output to
 	const String window_name = "Superpixels";

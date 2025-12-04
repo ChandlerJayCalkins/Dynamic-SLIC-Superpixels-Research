@@ -758,7 +758,10 @@ void SuperpixelSLICImpl::duperizeWithAverage(float distance)
 		}
 	}
 
-	// TODO: Group superpixels based on average color
+	for (int superpixel = 0; superpixel < m_numlabels; superpixel += 1)
+	{
+		
+	}
 
 	// TODO: Change m_klabels so pixel labels use proper superduperpixel labels
 
