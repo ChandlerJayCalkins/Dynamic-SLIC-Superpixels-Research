@@ -222,8 +222,8 @@ private:
 
 	// Graph of which superpixels are adjecent to each other
 	// First dimension is each superpixel
-	// Second dimension is the connections to each adjacent superpixel
-	vector< set<int> > superpixel_connections;
+	// Second dimension is index of each neighboring superpixel
+	vector< set<int> > superpixel_neighbors;
 
 	// Average colors of each superpixel
 	// First dimension is each color channel
@@ -657,7 +657,7 @@ void SuperpixelSLICImpl::enforceLabelConnectivity( int min_element_size )
  */
 void SuperpixelSLICImpl::duperize(int num_buckets[])
 {
-	superpixel_connections.resize(m_numlabels);
+	superpixel_neighbors.resize(m_numlabels);
 	superpixel_population.resize(m_numlabels);
 
 	// Initialize all dimensions of average colors
@@ -693,14 +693,14 @@ void SuperpixelSLICImpl::duperize(int num_buckets[])
 		if (not_left_column)
 		{
 			int superpixel_to_left = m_klabels.at<int>(y, x - 1);
-			superpixel_connections[current_superpixel].insert(superpixel_to_left);
-			superpixel_connections[superpixel_to_left].insert(current_superpixel);
+			superpixel_neighbors[current_superpixel].insert(superpixel_to_left);
+			superpixel_neighbors[superpixel_to_left].insert(current_superpixel);
 		}
 		if (not_top_row)
 		{
 			int superpixel_above = m_klabels.at<int>(y - 1, x);
-			superpixel_connections[current_superpixel].insert(superpixel_above);
-			superpixel_connections[superpixel_above].insert(current_superpixel);
+			superpixel_neighbors[current_superpixel].insert(superpixel_above);
+			superpixel_neighbors[superpixel_above].insert(current_superpixel);
 		}
 
 		// Keeps count of the number of pixels in each superpixel (for calculating average color)
@@ -790,7 +790,7 @@ void SuperpixelSLICImpl::duperize(int num_buckets[])
 	// Divide each superpixel average color value by the number of pixels in that superpixel to get the actual average
 	for (int superpixel = 0; superpixel < m_numlabels; superpixel += 1)
 	{
-		superpixel_connections[superpixel].erase(superpixel);
+		superpixel_neighbors[superpixel].erase(superpixel);
 		for (int color_channel = 0; color_channel < m_nr_channels; color_channel += 1)
 		{
 			superpixel_average_colors[color_channel][superpixel] /= superpixel_population[superpixel];
