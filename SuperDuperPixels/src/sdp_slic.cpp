@@ -843,13 +843,10 @@ void SuperpixelSLICImpl::duperizeWithAverage(float max_distance)
 	int superduperpixel_count = 0;
 	for (SuperDuperPixel sdp : superduperpixels)
 	{
-		std::cout << superduperpixel_count << ": ";
 		for (int superpixel : sdp.get_superpixels())
 		{
 			superduperpixel_indexes[superpixel] = superduperpixel_count;
-			std::cout << superpixel << ' ';
 		}
-		std::cout << std::endl;
 		superduperpixel_count += 1;
 	}
 
