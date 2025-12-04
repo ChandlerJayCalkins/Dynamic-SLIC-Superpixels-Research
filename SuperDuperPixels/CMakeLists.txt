@@ -11,5 +11,5 @@ find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-add_executable(${PROJECT_NAME} src/demo.cpp src/sd_slic.cpp)
+add_executable(${PROJECT_NAME} src/demo.cpp src/sdp_slic.cpp)
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})

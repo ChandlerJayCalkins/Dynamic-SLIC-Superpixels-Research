@@ -103,7 +103,7 @@ Below is the original OpenCV SLIC implementation header.
 #include <cassert>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
-#include "sd_slic.hpp"
+#include "sdp_slic.hpp"
 
 using namespace std;
 
@@ -161,7 +161,9 @@ public:
 	//////////////////////////////////////////////////
 
 	// combines similar adjacent superpixels into super-duper-pixels
-	virtual void duperize(int num_buckets[]) CV_OVERRIDE;
+	virtual void duperizeWithAverage(float distance) CV_OVERRIDE;
+
+	virtual void duperizeWithHistogram(int num_buckets[]) CV_OVERRIDE;
 
 
 protected:
@@ -220,24 +222,26 @@ private:
 
 	//////////////////// Custom Fields ////////////////////
 
-	// Graph of which superpixels are adjecent to each other
-	// First dimension is each superpixel
-	// Second dimension is index of each neighboring superpixel
-	vector< set<int> > superpixel_neighbors;
+	// // Graph of which superpixels are adjecent to each other
+	// // First dimension is each superpixel
+	// // Second dimension is index of each neighboring superpixel
+	// vector< set<int> > superpixel_neighbors;
 
-	// Average colors of each superpixel
-	// First dimension is each color channel
-	// Second dimension is each superpixel
-	vector< vector<float> > superpixel_average_colors;
+	// // Average colors of each superpixel
+	// // First dimension is each color channel
+	// // Second dimension is each superpixel
+	// vector< vector<float> > superpixel_average_colors;
 
-	// The number of pixels in each superpixel
-	vector<int> superpixel_population;
+	// // The number of pixels in each superpixel
+	// vector<int> superpixel_population;
 
-	// Color histograms of each superpixel
-	// First dimension is each color channel
-	// Second dimension is each histogram basket
-	// Third dimension is each superpixel
-	vector< vector< vector<int> >> superpixel_color_histograms;
+	// // Color histograms of each superpixel
+	// // First dimension is each color channel
+	// // Second dimension is each histogram basket
+	// // Third dimension is each superpixel
+	// vector< vector< vector<float> >> superpixel_color_histograms;
+
+	// vector<int> superduperpixel_connections;
 	
 	//////////////////// Custom Fields ////////////////////
 
@@ -655,27 +659,138 @@ void SuperpixelSLICImpl::enforceLabelConnectivity( int min_element_size )
 /*
  * Combine adjacent superpixels into super-duper-pixels if they're similar enough in color.
  */
-void SuperpixelSLICImpl::duperize(int num_buckets[])
+void SuperpixelSLICImpl::duperizeWithAverage(float distance)
 {
-	superpixel_neighbors.resize(m_numlabels);
-	superpixel_population.resize(m_numlabels);
+	// Graph of which superpixels are adjecent to each other
+	// First dimension is each superpixel
+	// Second dimension is index of each neighboring superpixel
+	vector< set<int> > superpixel_neighbors(m_numlabels);
 
-	// Initialize all dimensions of average colors
-	superpixel_average_colors.resize(m_nr_channels);
-	for (int channel = 0; channel < m_nr_channels; channel += 1)
+	// Average colors of each superpixel
+	// First dimension is each color channel
+	// Second dimension is each superpixel
+	vector< vector<float> > superpixel_average_colors(m_nr_channels, vector<float>(m_numlabels, 0));
+
+	// The number of pixels in each superpixel
+	vector<int> superpixel_population(m_numlabels, 0);
+
+	// Stores which super-duper-pixel each superpixel belong to
+	// super-duper-pixel value of -1 means it doesn't belong to a superduperpixel
+	vector<int> superduperpixel_connections(m_numlabels, -1);
+
+	// Loop through each pixel
+	// Find superpixel connections
+	// Get average color and color histograms of superpixels
+	for (int y = 0; y < m_height; y += 1)
+	for (int x = 0; x < m_width; x += 1)
 	{
-		superpixel_average_colors[channel].resize(m_numlabels);
+		int current_superpixel = m_klabels.at<int>(y, x);
+
+		// Create connections between adjacent superpixels based on where adjacent pixels are
+		// in different superpixels
+		bool not_left_column = x > 0;
+		bool not_top_row = y > 0;
+		if (not_left_column)
+		{
+			int superpixel_to_left = m_klabels.at<int>(y, x - 1);
+			superpixel_neighbors[current_superpixel].insert(superpixel_to_left);
+			superpixel_neighbors[superpixel_to_left].insert(current_superpixel);
+		}
+		if (not_top_row)
+		{
+			int superpixel_above = m_klabels.at<int>(y - 1, x);
+			superpixel_neighbors[current_superpixel].insert(superpixel_above);
+			superpixel_neighbors[superpixel_above].insert(current_superpixel);
+		}
+
+		// Keeps count of the number of pixels in each superpixel (for calculating average color)
+		superpixel_population[current_superpixel] += 1;
+
+		// Get average colors and color histograms for each superpixel
+		for (int color_channel = 0; color_channel < m_nr_channels; color_channel += 1)
+		{
+			switch ( m_chvec[0].depth() )
+			{
+				case CV_8U:
+					superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<uchar>(y, x);
+					break;
+
+				case CV_8S:
+					superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<char>(y, x);
+					break;
+
+				case CV_16U:
+					superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<ushort>(y, x);
+					break;
+
+				case CV_16S:
+					superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<short>(y, x);
+					break;
+
+				case CV_32S:
+					superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<int>(y, x);
+					break;
+
+				case CV_32F:
+					superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<float>(y, x);
+					break;
+
+				case CV_64F:
+					superpixel_average_colors[color_channel][current_superpixel] += (float) m_chvec[color_channel].at<double>(y, x);
+					break;
+
+				default:
+					CV_Error( Error::StsInternal, "Invalid matrix depth" );
+					break;
+			}
+		}
 	}
+	
+	// Loop through each superpixel
+	// Remove superpixels being connected to themselves
+	// Divide each superpixel average color value by the number of pixels in that superpixel to get the actual average
+	for (int superpixel = 0; superpixel < m_numlabels; superpixel += 1)
+	{
+		superpixel_neighbors[superpixel].erase(superpixel);
+		for (int color_channel = 0; color_channel < m_nr_channels; color_channel += 1)
+		{
+			superpixel_average_colors[color_channel][superpixel] /= superpixel_population[superpixel];
+		}
+	}
+
+	// TODO: Group superpixels based on average color
+
+	// TODO: Resize m_numlabels after duperizing
+}
+
+/*
+ * Combine adjacent superpixels into super-duper-pixels if they're similar enough in color.
+ */
+void SuperpixelSLICImpl::duperizeWithHistogram(int num_buckets[])
+{
+	// Graph of which superpixels are adjecent to each other
+	// First dimension is each superpixel
+	// Second dimension is index of each neighboring superpixel
+	vector< set<int> > superpixel_neighbors(m_numlabels);
+
+	// The number of pixels in each superpixel
+	vector<int> superpixel_population(m_numlabels, 0);
+
+	// Color histograms of each superpixel
+	// First dimension is each color channel
+	// Second dimension is each histogram basket
+	// Third dimension is each superpixel
+	vector< vector< vector<float> >> superpixel_color_histograms;
+
+	// Stores which super-duper-pixel each superpixel belong to
+	// super-duper-pixel value of -1 means it doesn't belong to a superduperpixel
+	vector<int> superduperpixel_connections(m_numlabels, -1);
 
 	// Initialize all dimentions of color histograms
 	superpixel_color_histograms.resize(m_nr_channels);
 	for (int channel = 0; channel < m_nr_channels; channel += 1)
 	{
-		superpixel_color_histograms[channel].resize(num_buckets[channel]);
-		for (int bucket = 0; bucket < num_buckets[channel]; bucket += 1)
-		{
-			superpixel_color_histograms[channel][bucket].resize(m_numlabels);
-		}
+		superpixel_color_histograms[channel].resize(num_buckets[channel], vector<float>(m_numlabels, 0.0));
 	}
 
 	// Loop through each pixel
@@ -711,76 +826,69 @@ void SuperpixelSLICImpl::duperize(int num_buckets[])
 		{
 			int bucket_index;
 			switch ( m_chvec[0].depth() )
-            {
-            	case CV_8U:
+			{
+				case CV_8U:
 				{
-            		superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<uchar>(y, x);
 					int max = std::numeric_limits<uchar>::max();
 					int bucket_size = max / num_buckets[color_channel] + ((int) max % num_buckets[color_channel] != 0);
 					bucket_index = m_chvec[color_channel].at<uchar>(y, x) / bucket_size;
-            		break;
+					break;
 				}
 
-            	case CV_8S:
+				case CV_8S:
 				{
-            		superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<char>(y, x);
 					int max = std::numeric_limits<char>::max();
 					int bucket_size = max / num_buckets[color_channel] + ((int) max % num_buckets[color_channel] != 0);
 					bucket_index = m_chvec[color_channel].at<char>(y, x) / bucket_size;
-            		break;
+					break;
 				}
 
-            	case CV_16U:
+				case CV_16U:
 				{
-            		superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<ushort>(y, x);
 					int max = std::numeric_limits<ushort>::max();
 					int bucket_size = max / num_buckets[color_channel] + ((int) max % num_buckets[color_channel] != 0);
 					bucket_index = m_chvec[color_channel].at<ushort>(y, x) / bucket_size;
-            		break;
+					break;
 				}
 
-            	case CV_16S:
+				case CV_16S:
 				{
-            		superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<short>(y, x);
 					int max = std::numeric_limits<short>::max();
 					int bucket_size = max / num_buckets[color_channel] + ((int) max % num_buckets[color_channel] != 0);
 					bucket_index = m_chvec[color_channel].at<short>(y, x) / bucket_size;
-            		break;
+					break;
 				}
 
-            	case CV_32S:
+				case CV_32S:
 				{
-            		superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<int>(y, x);
 					int max = std::numeric_limits<int>::max();
 					int bucket_size = max / num_buckets[color_channel] + ((int) max % num_buckets[color_channel] != 0);
 					bucket_index = m_chvec[color_channel].at<int>(y, x) / bucket_size;
-            		break;
+					break;
 				}
 
-            	case CV_32F:
+				case CV_32F:
 				{
-            		superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<float>(y, x);
 					// Assume range lies between 0 and 1 for values that are float types
 					bucket_index = ((int) (m_chvec[color_channel].at<float>(y, x) * num_buckets[color_channel]));
 					// Subtract 1 if the bucket index is too big (value of 1.0 * num_buckets would be out of bounds)
 					bucket_index -= (int) (bucket_index == num_buckets[color_channel]);
-            		break;
+					break;
 				}
 
-            	case CV_64F:
+				case CV_64F:
 				{
-            		superpixel_average_colors[color_channel][current_superpixel] += (float) m_chvec[color_channel].at<double>(y, x);
 					// Assume range lies between 0 and 1 for values that are float types
 					bucket_index = ((int) (m_chvec[color_channel].at<double>(y, x) * num_buckets[color_channel]));
 					// Subtract 1 if the bucket index is too big (value of 1.0 * num_buckets would be out of bounds)
 					bucket_index -= (int) (bucket_index == num_buckets[color_channel]);
-            		break;
+					break;
 				}
 
-            	default:
+				default:
 					CV_Error( Error::StsInternal, "Invalid matrix depth" );
 					break;
-            }
+			}
 			superpixel_color_histograms[color_channel][bucket_index][current_superpixel] += 1;
 		}
 	}
@@ -793,9 +901,11 @@ void SuperpixelSLICImpl::duperize(int num_buckets[])
 		superpixel_neighbors[superpixel].erase(superpixel);
 		for (int color_channel = 0; color_channel < m_nr_channels; color_channel += 1)
 		{
-			superpixel_average_colors[color_channel][superpixel] /= superpixel_population[superpixel];
+			// TODO: Change histogram buckets from counts to percentages for comparisons to other histograms
 		}
 	}
+
+	// TODO: Treat each precentage histogram as a point in space and measure distances between them to group superpixels
 
 	// TODO: Resize m_numlabels after duperizing
 }

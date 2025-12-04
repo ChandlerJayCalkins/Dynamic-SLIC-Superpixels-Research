@@ -143,7 +143,9 @@ public:
 	color histograms of each superpixel. The array must be the same size as the number of channels in the
 	image.
      */
-	CV_WRAP virtual void duperize(int num_buckets[]) = 0;
+	CV_WRAP virtual void duperizeWithAverage(float distance) = 0;
+
+	CV_WRAP virtual void duperizeWithHistogram(int num_buckets[]) = 0;
 
 
 };
