@@ -163,10 +163,11 @@ public:
 	//
 	//////////////////////////////////////////////////
 
-	// combines similar adjacent superpixels into super-duper-pixels
+	// combines similar adjacent superpixels into super-duper-pixels using average colors of superpixels
 	virtual void duperizeWithAverage(float distance) CV_OVERRIDE;
 
-	virtual void duperizeWithHistogram(int num_buckets[]) CV_OVERRIDE;
+	// combines similar adjacent superpixels into super-duper-pixels using (normalized) color histograms of superpixels
+	virtual void duperizeWithHistogram(int num_buckets[], float distance) CV_OVERRIDE;
 
 
 protected:
@@ -915,8 +916,9 @@ void SuperpixelSLICImpl::assignSuperduperpixels(vector<int>& superduperpixel_ind
 
 /*
  * Combine adjacent superpixels into super-duper-pixels if they're similar enough in color.
+ * Uses (normalized) color histograms of superpixels to determine if they're similar enough in color.
  */
-void SuperpixelSLICImpl::duperizeWithHistogram(int num_buckets[])
+void SuperpixelSLICImpl::duperizeWithHistogram(int num_buckets[], float distance)
 {
 	// Graph of which superpixels are adjecent to each other
 	// First dimension is each superpixel
