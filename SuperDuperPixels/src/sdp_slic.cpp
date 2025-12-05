@@ -947,6 +947,7 @@ void SuperpixelSLICImpl::combineIntoSuperDuperPixel
 	const int neighbor
 )
 {
+	// TODO: split this method up a bit more
 	if (superduperpixel_pointers[neighbor] == NULL)
 	{
 		if (superduperpixel_pointers[superpixel] == NULL)
