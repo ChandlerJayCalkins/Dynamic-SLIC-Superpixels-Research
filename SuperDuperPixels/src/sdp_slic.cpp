@@ -760,8 +760,6 @@ void SuperpixelSLICImpl::duperizeWithAverage(float max_distance)
 	vector<SuperDuperPixel*> superduperpixel_pointers(m_numlabels, NULL);
 	std::list<SuperDuperPixel> superduperpixels;
 	vector<std::list<SuperDuperPixel>::iterator> superduperpixel_iterators(m_numlabels, superduperpixels.end());
-    // Collect iterators to elements that need to be erased after merging.
-    std::vector<std::list<SuperDuperPixel>::iterator> to_erase;
 
 	// Loop through each superpixel
 	// Group them together based on distances between average colors
