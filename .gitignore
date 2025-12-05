@@ -42,6 +42,7 @@
 
 # VSCode settings
 */.vscode
+.vscode
 
 # Processed output images only (allow sample inputs)
 ltridp/data/output/
