@@ -256,6 +256,32 @@ private:
     // MSLIC
     inline void SuperpixelSplit();
 
+	//////////////////// Custom Methods ////////////////////
+
+	inline void findSuperpixelNeighborsAndAverages
+	(
+		vector< set<int> >& superpixel_neighbors,
+		vector< vector<float> >& superpixel_average_colors,
+		vector<int>& superpixel_population
+	);
+
+	inline void groupSuperpixels
+	(
+		float max_distance,
+		vector< set<int> >& superpixel_neighbors,
+		vector< vector<float> >& superpixel_average_colors,
+		vector<int>& superpixel_population,
+		std::list<SuperDuperPixel>& superduperpixels,
+		vector<SuperDuperPixel*>& superduperpixel_pointers,
+		vector<std::list<SuperDuperPixel>::iterator>& superduperpixel_iterators
+	);
+
+	inline int indexSuperduperpixels(std::list<SuperDuperPixel>& superduperpixels, vector<int>& superduperpixel_indexes);
+
+	inline void assignSuperduperpixels(vector<int>& superduperpixel_indexes);
+
+	//////////////////// Custom Methods ////////////////////
+
 };
 
 CV_EXPORTS Ptr<SuperpixelSLIC> createSuperpixelSLIC( InputArray image, int algorithm, int region_size, float ruler )
@@ -636,22 +662,60 @@ void SuperpixelSLICImpl::enforceLabelConnectivity( int min_element_size )
 
 /*
  * Combine adjacent superpixels into super-duper-pixels if they're similar enough in color.
+ * Uses average colors of superpixels to determine if they're similar enough in color.
  */
 void SuperpixelSLICImpl::duperizeWithAverage(float max_distance)
 {
 	// Graph of which superpixels are adjecent to each other
 	// First dimension is each superpixel
 	// Second dimension is index of each neighboring superpixel
-	vector< set<int> > superpixel_neighbors(m_numlabels);
+	vector< set<int> > superpixel_neighbors;
 
 	// Average colors of each superpixel
 	// First dimension is each color channel
 	// Second dimension is each superpixel
-	vector< vector<float> > superpixel_average_colors(m_nr_channels, vector<float>(m_numlabels, 0));
+	vector< vector<float> > superpixel_average_colors;
 
 	// The number of pixels in each superpixel
-	vector<int> superpixel_population(m_numlabels, 0);
+	vector<int> superpixel_population;
 
+	this->findSuperpixelNeighborsAndAverages(superpixel_neighbors, superpixel_average_colors, superpixel_population);
+
+	std::list<SuperDuperPixel> superduperpixels;
+	vector<SuperDuperPixel*> superduperpixel_pointers;
+	vector<std::list<SuperDuperPixel>::iterator> superduperpixel_iterators;
+
+	this->groupSuperpixels
+	(
+		max_distance,
+		superpixel_neighbors,
+		superpixel_average_colors,
+		superpixel_population,
+		superduperpixels,
+		superduperpixel_pointers,
+		superduperpixel_iterators
+	);
+
+	// Stores which super-duper-pixel each superpixel belong to
+	// super-duper-pixel value of -1 means it doesn't belong to a superduperpixel yet
+	vector<int> superduperpixel_indexes(m_numlabels, -1);
+	int superduperpixel_count = this->indexSuperduperpixels(superduperpixels, superduperpixel_indexes);
+
+	this->assignSuperduperpixels(superduperpixel_indexes);
+
+	m_numlabels = superduperpixel_count;
+}
+
+void SuperpixelSLICImpl::findSuperpixelNeighborsAndAverages
+(
+	vector< set<int> >& superpixel_neighbors,
+	vector< vector<float> >& superpixel_average_colors,
+	vector<int>& superpixel_population
+)
+{
+	superpixel_neighbors = vector< set<int> >(m_numlabels);
+	superpixel_average_colors = vector< vector<float> >(m_nr_channels, vector<float>(m_numlabels, 0));
+	superpixel_population = vector<int>(m_numlabels, 0);
 	// Loop through each pixel
 	// Find superpixel connections
 	// Get average color and color histograms of superpixels
@@ -731,11 +795,21 @@ void SuperpixelSLICImpl::duperizeWithAverage(float max_distance)
 			superpixel_average_colors[color_channel][superpixel] /= superpixel_population[superpixel];
 		}
 	}
+}
 
-	vector<SuperDuperPixel*> superduperpixel_pointers(m_numlabels, NULL);
-	std::list<SuperDuperPixel> superduperpixels;
-	vector<std::list<SuperDuperPixel>::iterator> superduperpixel_iterators(m_numlabels, superduperpixels.end());
-
+void SuperpixelSLICImpl::groupSuperpixels
+(
+	float max_distance,
+	vector< set<int> >& superpixel_neighbors,
+	vector< vector<float> >& superpixel_average_colors,
+	vector<int>& superpixel_population,
+	std::list<SuperDuperPixel>& superduperpixels,
+	vector<SuperDuperPixel*>& superduperpixel_pointers,
+	vector<std::list<SuperDuperPixel>::iterator>& superduperpixel_iterators
+)
+{
+	superduperpixel_pointers = vector<SuperDuperPixel*>(m_numlabels, NULL);
+	superduperpixel_iterators = vector<std::list<SuperDuperPixel>::iterator>(m_numlabels, superduperpixels.end());
 	// Loop through each superpixel
 	// Group them together based on distances between average colors
 	for (int superpixel = 0; superpixel < m_numlabels; superpixel += 1)
@@ -754,11 +828,15 @@ void SuperpixelSLICImpl::duperizeWithAverage(float max_distance)
 			{
 				average_colors.push_back(superpixel_average_colors[color_channel][superpixel]);
 				float difference = superpixel_average_colors[color_channel][superpixel] - superpixel_average_colors[color_channel][neighbor];
-				neighbor_distance += difference * difference;
+				// opencv slic algorithm square diff before adding it to dist.
+				// neighbor_distance += difference * difference;
+				// Just take absolute value to do mahnattan distance instead.
+				neighbor_distance += abs(difference);
 			}
-			// Skip doing square root since it's expensive and this file doesn't do it for grouping pixels either
-			// Just do manhattan distance instead
-			// Could do neighbor_distance = sqrt(neighbor_distance) to be more exact at the cost of runtime
+			// Just use manhattan distance here.
+			// Could do this to be more precise (euclidian distance, would also need to square the diff above), but OpenCV
+			// SLIC algorithm doesn't use it either.
+			// neighbor_distance = sqrt(neighbor_distance);
 
 			if (neighbor_distance < max_distance)
 			{
@@ -808,11 +886,11 @@ void SuperpixelSLICImpl::duperizeWithAverage(float max_distance)
 			superduperpixel_pointers[superpixel] = &superduperpixels.back();
 		}
 	}
+}
 
-	// Stores which super-duper-pixel each superpixel belong to
-	// super-duper-pixel value of -1 means it doesn't belong to a superduperpixel
-	vector<int> superduperpixel_indexes(m_numlabels, -1);
-
+int SuperpixelSLICImpl::indexSuperduperpixels(std::list<SuperDuperPixel>& superduperpixels, vector<int>& superduperpixel_indexes)
+{
+	superduperpixel_indexes = vector<int>(m_numlabels, -1);
 	int superduperpixel_count = 0;
 	for (SuperDuperPixel sdp : superduperpixels)
 	{
@@ -822,16 +900,17 @@ void SuperpixelSLICImpl::duperizeWithAverage(float max_distance)
 		}
 		superduperpixel_count += 1;
 	}
+	return superduperpixel_count;
+}
 
-	// TODO: Change m_klabels so pixel labels use proper superduperpixel labels
+void SuperpixelSLICImpl::assignSuperduperpixels(vector<int>& superduperpixel_indexes)
+{
+	// Change m_klabels so pixels use superduperpixels instead of their old superpixels
 	for (int y = 0; y < m_height; y += 1)
 	for (int x = 0; x < m_width; x += 1)
 	{
 		m_klabels.at<int>(y, x) = superduperpixel_indexes[m_klabels.at<int>(y, x)];
 	}
-
-	// TODO: Resize m_numlabels after duperizing
-	m_numlabels = superduperpixel_count;
 }
 
 /*

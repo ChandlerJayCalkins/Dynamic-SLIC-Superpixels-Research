@@ -138,13 +138,23 @@ public:
 	//////////////////////////////////////////////////
 	
 	/** @brief Combines adjacent superpixels into super-duper-pixels if they're similar enough in color.
+	
+	Uses average colors of superpixels to determine if they're similar enough in color.
 
-    @param num_buckets Each element in the array is the number of buckets to separate colors into in the
+    @param distance Each element in the array is the number of buckets to separate colors into in the
 	color histograms of each superpixel. The array must be the same size as the number of channels in the
 	image.
      */
 	CV_WRAP virtual void duperizeWithAverage(float distance) = 0;
 
+	/** @brief Combines adjacent superpixels into super-duper-pixels if they're similar enough in color.
+	
+	Uses distances between color histograms of superpixels to determine if they're similar enough in color.
+
+    @param num_buckets Each element in the array is the number of buckets to separate colors into in the
+	color histograms of each superpixel. The array must be the same size as the number of channels in the
+	image.
+     */
 	CV_WRAP virtual void duperizeWithHistogram(int num_buckets[]) = 0;
 
 

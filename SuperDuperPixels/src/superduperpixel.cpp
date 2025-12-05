@@ -15,10 +15,15 @@ float SuperDuperPixel::distance_from(const std::vector<float>& average_or_histog
 	for (int color_channel = 0; color_channel < this->average_or_histogram.size(); color_channel += 1)
 	{
 		float diff = this->average_or_histogram[color_channel] - average_or_histogram[color_channel];
-		dist += diff * diff;
+		// OpenCV SLIC algorithm square diff before adding it to dist.
+		// dist += diff * diff;
+		// Just take absolute value to do mahnattan distance instead.
+		dist += abs(diff);
 	}
-	// Just return manhattan distance here. Could do dist = sqrt(dist) to be more precise (euclidian distance),
-	// but it's expensive.
+	// Just use manhattan distance here.
+	// Could do this to be more precise (euclidian distance, would also need to square the diff above), but OpenCV
+	// SLIC algorithm doesn't use it either.
+	// dist = sqrt(dist);
 	return dist;
 }
 

@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
 	slic->iterate(1);
 	const int num_buckets[] = {2, 2, 2};
 	slic->enforceLabelConnectivity(min_superpixel_size_percent);
-	slic->duperizeWithAverage(500.0);
+	slic->duperizeWithAverage(50.0);
 
 	// // Gets 2D array of the superpixel each pixel is a part of
 	// Mat labels;
