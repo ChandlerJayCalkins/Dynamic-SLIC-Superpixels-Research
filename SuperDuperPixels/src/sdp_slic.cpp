@@ -223,31 +223,6 @@ private:
     // seeds storage
     vector< vector<float> > m_kseeds;
 
-	//////////////////// Custom Fields ////////////////////
-
-	// // Graph of which superpixels are adjecent to each other
-	// // First dimension is each superpixel
-	// // Second dimension is index of each neighboring superpixel
-	// vector< set<int> > superpixel_neighbors;
-
-	// // Average colors of each superpixel
-	// // First dimension is each color channel
-	// // Second dimension is each superpixel
-	// vector< vector<float> > superpixel_average_colors;
-
-	// // The number of pixels in each superpixel
-	// vector<int> superpixel_population;
-
-	// // Color histograms of each superpixel
-	// // First dimension is each color channel
-	// // Second dimension is each histogram basket
-	// // Third dimension is each superpixel
-	// vector< vector< vector<float> >> superpixel_color_histograms;
-
-	// vector<int> superduperpixel_connections;
-	
-	//////////////////// Custom Fields ////////////////////
-
     // adaptive k (MSLIC)
     vector<float> m_adaptk;
 
