@@ -266,20 +266,60 @@ private:
 		vector<int>& superpixel_population
 	);
 
+	inline void addColorsToAverages
+	(
+		vector< vector<float> >& superpixel_average_colors,
+		const int current_superpixel,
+		const int x,
+		const int y
+	);
+
+	inline void linkNeighborSuperpixels
+	(
+		vector< set<int> >& superpixel_neighbors,
+		const int current_superpixel,
+		const int x,
+		const int y
+	);
+
 	inline void groupSuperpixels
 	(
-		float max_distance,
-		vector< set<int> >& superpixel_neighbors,
-		vector< vector<float> >& superpixel_average_colors,
-		vector<int>& superpixel_population,
+		const float max_distance,
+		const vector< set<int> >& superpixel_neighbors,
+		const vector< vector<float> >& superpixel_average_colors,
+		const vector<int>& superpixel_population,
 		std::list<SuperDuperPixel>& superduperpixels,
 		vector<SuperDuperPixel*>& superduperpixel_pointers,
 		vector<std::list<SuperDuperPixel>::iterator>& superduperpixel_iterators
 	);
 
-	inline int indexSuperduperpixels(std::list<SuperDuperPixel>& superduperpixels, vector<int>& superduperpixel_indexes);
+	inline float getColorDistance
+	(
+		const vector< vector<float> >& superpixel_average_colors, 
+		vector<float>& average_colors,
+		const int superpixel,
+		const int neighbor
+	);
 
-	inline void assignSuperduperpixels(vector<int>& superduperpixel_indexes);
+	inline void combineIntoSuperDuperPixel
+	(
+		std::list<SuperDuperPixel>& superduperpixels,
+		vector<SuperDuperPixel*>& superduperpixel_pointers,
+		vector<std::list<SuperDuperPixel>::iterator>& superduperpixel_iterators,
+		const vector< vector<float> >& superpixel_average_colors,
+		const vector<float>& average_colors,
+		const vector<int>& superpixel_population,
+		const int superpixel,
+		const int neighbor
+	);
+
+	inline int indexSuperduperpixels
+	(
+		const std::list<SuperDuperPixel>& superduperpixels,
+		vector<int>& superduperpixel_indexes
+	);
+
+	inline void assignSuperduperpixels(const vector<int>& superduperpixel_indexes);
 
 	//////////////////// Custom Methods ////////////////////
 
@@ -724,65 +764,10 @@ void SuperpixelSLICImpl::findSuperpixelNeighborsAndAverages
 	for (int x = 0; x < m_width; x += 1)
 	{
 		int current_superpixel = m_klabels.at<int>(y, x);
-
-		// Create connections between adjacent superpixels based on where adjacent pixels are
-		// in different superpixels
-		bool not_left_column = x > 0;
-		bool not_top_row = y > 0;
-		if (not_left_column)
-		{
-			int superpixel_to_left = m_klabels.at<int>(y, x - 1);
-			superpixel_neighbors[current_superpixel].insert(superpixel_to_left);
-			superpixel_neighbors[superpixel_to_left].insert(current_superpixel);
-		}
-		if (not_top_row)
-		{
-			int superpixel_above = m_klabels.at<int>(y - 1, x);
-			superpixel_neighbors[current_superpixel].insert(superpixel_above);
-			superpixel_neighbors[superpixel_above].insert(current_superpixel);
-		}
-
+		this->linkNeighborSuperpixels(superpixel_neighbors, current_superpixel, x, y);
 		// Keeps count of the number of pixels in each superpixel (for calculating average color)
 		superpixel_population[current_superpixel] += 1;
-
-		// Get average colors and color histograms for each superpixel
-		for (int color_channel = 0; color_channel < m_nr_channels; color_channel += 1)
-		{
-			switch ( m_chvec[0].depth() )
-			{
-				case CV_8U:
-					superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<uchar>(y, x);
-					break;
-
-				case CV_8S:
-					superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<char>(y, x);
-					break;
-
-				case CV_16U:
-					superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<ushort>(y, x);
-					break;
-
-				case CV_16S:
-					superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<short>(y, x);
-					break;
-
-				case CV_32S:
-					superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<int>(y, x);
-					break;
-
-				case CV_32F:
-					superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<float>(y, x);
-					break;
-
-				case CV_64F:
-					superpixel_average_colors[color_channel][current_superpixel] += (float) m_chvec[color_channel].at<double>(y, x);
-					break;
-
-				default:
-					CV_Error( Error::StsInternal, "Invalid matrix depth" );
-					break;
-			}
-		}
+		this->addColorsToAverages(superpixel_average_colors, current_superpixel, x, y);
 	}
 	
 	// Loop through each superpixel
@@ -798,12 +783,86 @@ void SuperpixelSLICImpl::findSuperpixelNeighborsAndAverages
 	}
 }
 
+void SuperpixelSLICImpl::linkNeighborSuperpixels
+(
+	vector< set<int> >& superpixel_neighbors,
+	const int current_superpixel,
+	const int x,
+	const int y
+)
+{
+	// Create connections between adjacent superpixels based on where adjacent pixels are
+	// in different superpixels
+	bool not_left_column = x > 0;
+	bool not_top_row = y > 0;
+	if (not_left_column)
+	{
+		int superpixel_to_left = m_klabels.at<int>(y, x - 1);
+		superpixel_neighbors[current_superpixel].insert(superpixel_to_left);
+		superpixel_neighbors[superpixel_to_left].insert(current_superpixel);
+	}
+	if (not_top_row)
+	{
+		int superpixel_above = m_klabels.at<int>(y - 1, x);
+		superpixel_neighbors[current_superpixel].insert(superpixel_above);
+		superpixel_neighbors[superpixel_above].insert(current_superpixel);
+	}
+}
+
+void SuperpixelSLICImpl::addColorsToAverages
+(
+	vector< vector<float> >& superpixel_average_colors,
+	const int current_superpixel,
+	const int x,
+	const int y
+)
+{
+	// Get average colors and color histograms for each superpixel
+	for (int color_channel = 0; color_channel < m_nr_channels; color_channel += 1)
+	{
+		switch ( m_chvec[0].depth() )
+		{
+			case CV_8U:
+				superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<uchar>(y, x);
+				break;
+
+			case CV_8S:
+				superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<char>(y, x);
+				break;
+
+			case CV_16U:
+				superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<ushort>(y, x);
+				break;
+
+			case CV_16S:
+				superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<short>(y, x);
+				break;
+
+			case CV_32S:
+				superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<int>(y, x);
+				break;
+
+			case CV_32F:
+				superpixel_average_colors[color_channel][current_superpixel] += m_chvec[color_channel].at<float>(y, x);
+				break;
+
+			case CV_64F:
+				superpixel_average_colors[color_channel][current_superpixel] += (float) m_chvec[color_channel].at<double>(y, x);
+				break;
+
+			default:
+				CV_Error( Error::StsInternal, "Invalid matrix depth" );
+				break;
+		}
+	}
+}
+
 void SuperpixelSLICImpl::groupSuperpixels
 (
-	float max_distance,
-	vector< set<int> >& superpixel_neighbors,
-	vector< vector<float> >& superpixel_average_colors,
-	vector<int>& superpixel_population,
+	const float max_distance,
+	const vector< set<int> >& superpixel_neighbors,
+	const vector< vector<float> >& superpixel_average_colors,
+	const vector<int>& superpixel_population,
 	std::list<SuperDuperPixel>& superduperpixels,
 	vector<SuperDuperPixel*>& superduperpixel_pointers,
 	vector<std::list<SuperDuperPixel>::iterator>& superduperpixel_iterators
@@ -818,66 +877,25 @@ void SuperpixelSLICImpl::groupSuperpixels
 		vector<float> average_colors(m_nr_channels);
 		for (int neighbor: superpixel_neighbors[superpixel])
 		{
+			// Don't try to group together superpixels that are already grouped together
 			if (superduperpixel_pointers[neighbor] == superduperpixel_pointers[superpixel] && superduperpixel_pointers[neighbor] != NULL)
 			continue;
 
-			// ALT: calc neighbor_distance based on superpixel average if neighbor is in a superpixel.
-			// Otherwise do this:
-
-			float neighbor_distance = 0;
-			for (int color_channel = 0; color_channel < m_nr_channels; color_channel += 1)
-			{
-				average_colors.push_back(superpixel_average_colors[color_channel][superpixel]);
-				float difference = superpixel_average_colors[color_channel][superpixel] - superpixel_average_colors[color_channel][neighbor];
-				// opencv slic algorithm square diff before adding it to dist.
-				// neighbor_distance += difference * difference;
-				// Just take absolute value to do mahnattan distance instead.
-				neighbor_distance += abs(difference);
-			}
-			// Just use manhattan distance here.
-			// Could do this to be more precise (euclidian distance, would also need to square the diff above), but OpenCV
-			// SLIC algorithm doesn't use it either.
-			// neighbor_distance = sqrt(neighbor_distance);
+			float neighbor_distance = this->getColorDistance(superpixel_average_colors, average_colors, superpixel, neighbor);
 
 			if (neighbor_distance < max_distance)
 			{
-				if (superduperpixel_pointers[neighbor] == NULL)
-				{
-					if (superduperpixel_pointers[superpixel] == NULL)
-					{
-						superduperpixels.push_back(SuperDuperPixel(superpixel, average_colors, superpixel_population[superpixel]));
-						superduperpixel_pointers[superpixel] = &superduperpixels.back();
-						superduperpixel_iterators[superpixel] = --superduperpixels.end();
-					}
-					vector<float> neighbor_average_colors(m_nr_channels);
-					for (int color_channel = 0; color_channel < m_nr_channels; color_channel += 1)
-					{
-						neighbor_average_colors.push_back(superpixel_average_colors[color_channel][neighbor]);
-					}
-					superduperpixel_pointers[superpixel]->add_superpixel(neighbor, neighbor_average_colors, superpixel_population[neighbor]);
-					superduperpixel_pointers[neighbor] = superduperpixel_pointers[superpixel];
-					superduperpixel_iterators[neighbor] = superduperpixel_iterators[superpixel];
-				}
-				else
-				{
-					if (superduperpixel_pointers[superpixel] == NULL)
-					{
-						superduperpixel_pointers[neighbor]->add_superpixel(superpixel, average_colors, superpixel_population[superpixel]);
-						superduperpixel_pointers[superpixel] = superduperpixel_pointers[neighbor];
-						superduperpixel_iterators[superpixel] = superduperpixel_iterators[neighbor];
-					}
-					else
-					{
-						std::list<SuperDuperPixel>::iterator merging_superduperpixel = superduperpixel_iterators[neighbor];
-						(*superduperpixel_pointers[superpixel]) += superduperpixel_pointers[neighbor];
-						for (int connected_neighbor : superduperpixel_pointers[neighbor]->get_superpixels())
-						{
-							superduperpixel_pointers[connected_neighbor] = superduperpixel_pointers[superpixel];
-							superduperpixel_iterators[connected_neighbor] = superduperpixel_iterators[superpixel];
-						}
-						superduperpixels.erase(merging_superduperpixel);
-					}
-				}
+				this->combineIntoSuperDuperPixel
+				(
+					superduperpixels,
+					superduperpixel_pointers,
+					superduperpixel_iterators,
+					superpixel_average_colors,
+					average_colors,
+					superpixel_population,
+					superpixel,
+					neighbor
+				);
 			}
 		}
 
@@ -889,7 +907,90 @@ void SuperpixelSLICImpl::groupSuperpixels
 	}
 }
 
-int SuperpixelSLICImpl::indexSuperduperpixels(std::list<SuperDuperPixel>& superduperpixels, vector<int>& superduperpixel_indexes)
+float SuperpixelSLICImpl::getColorDistance
+(
+	const vector< vector<float> >& superpixel_average_colors, 
+	vector<float>& average_colors,
+	const int superpixel,
+	const int neighbor
+)
+{
+	// ALT: calc neighbor_distance based on superpixel average if neighbor is in a superpixel.
+	// Otherwise do this:
+
+	float neighbor_distance = 0;
+	for (int color_channel = 0; color_channel < m_nr_channels; color_channel += 1)
+	{
+		average_colors.push_back(superpixel_average_colors[color_channel][superpixel]);
+		float difference = superpixel_average_colors[color_channel][superpixel] - superpixel_average_colors[color_channel][neighbor];
+		// opencv slic algorithm square diff before adding it to dist.
+		// neighbor_distance += difference * difference;
+		// Just take absolute value to do mahnattan distance instead.
+		neighbor_distance += abs(difference);
+	}
+	// Just use manhattan distance here.
+	// Could do this to be more precise (euclidian distance, would also need to square the diff above), but OpenCV
+	// SLIC algorithm doesn't use it either.
+	// neighbor_distance = sqrt(neighbor_distance);
+	return neighbor_distance;
+}
+
+void SuperpixelSLICImpl::combineIntoSuperDuperPixel
+(
+	std::list<SuperDuperPixel>& superduperpixels,
+	vector<SuperDuperPixel*>& superduperpixel_pointers,
+	vector<std::list<SuperDuperPixel>::iterator>& superduperpixel_iterators,
+	const vector< vector<float> >& superpixel_average_colors,
+	const vector<float>& average_colors,
+	const vector<int>& superpixel_population,
+	const int superpixel,
+	const int neighbor
+)
+{
+	if (superduperpixel_pointers[neighbor] == NULL)
+	{
+		if (superduperpixel_pointers[superpixel] == NULL)
+		{
+			superduperpixels.push_back(SuperDuperPixel(superpixel, average_colors, superpixel_population[superpixel]));
+			superduperpixel_pointers[superpixel] = &superduperpixels.back();
+			superduperpixel_iterators[superpixel] = --superduperpixels.end();
+		}
+		vector<float> neighbor_average_colors(m_nr_channels);
+		for (int color_channel = 0; color_channel < m_nr_channels; color_channel += 1)
+		{
+			neighbor_average_colors.push_back(superpixel_average_colors[color_channel][neighbor]);
+		}
+		superduperpixel_pointers[superpixel]->add_superpixel(neighbor, neighbor_average_colors, superpixel_population[neighbor]);
+		superduperpixel_pointers[neighbor] = superduperpixel_pointers[superpixel];
+		superduperpixel_iterators[neighbor] = superduperpixel_iterators[superpixel];
+	}
+	else
+	{
+		if (superduperpixel_pointers[superpixel] == NULL)
+		{
+			superduperpixel_pointers[neighbor]->add_superpixel(superpixel, average_colors, superpixel_population[superpixel]);
+			superduperpixel_pointers[superpixel] = superduperpixel_pointers[neighbor];
+			superduperpixel_iterators[superpixel] = superduperpixel_iterators[neighbor];
+		}
+		else
+		{
+			std::list<SuperDuperPixel>::iterator merging_superduperpixel = superduperpixel_iterators[neighbor];
+			(*superduperpixel_pointers[superpixel]) += superduperpixel_pointers[neighbor];
+			for (int connected_neighbor : superduperpixel_pointers[neighbor]->get_superpixels())
+			{
+				superduperpixel_pointers[connected_neighbor] = superduperpixel_pointers[superpixel];
+				superduperpixel_iterators[connected_neighbor] = superduperpixel_iterators[superpixel];
+			}
+			superduperpixels.erase(merging_superduperpixel);
+		}
+	}
+}
+
+int SuperpixelSLICImpl::indexSuperduperpixels
+(
+	const std::list<SuperDuperPixel>& superduperpixels,
+	vector<int>& superduperpixel_indexes
+)
 {
 	superduperpixel_indexes = vector<int>(m_numlabels, -1);
 	int superduperpixel_count = 0;
@@ -904,7 +1005,7 @@ int SuperpixelSLICImpl::indexSuperduperpixels(std::list<SuperDuperPixel>& superd
 	return superduperpixel_count;
 }
 
-void SuperpixelSLICImpl::assignSuperduperpixels(vector<int>& superduperpixel_indexes)
+void SuperpixelSLICImpl::assignSuperduperpixels(const vector<int>& superduperpixel_indexes)
 {
 	// Change m_klabels so pixels use superduperpixels instead of their old superpixels
 	for (int y = 0; y < m_height; y += 1)
