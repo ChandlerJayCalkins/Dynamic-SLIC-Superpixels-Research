@@ -144,7 +144,7 @@ public:
     @param distance The max distance the average colors of superpixels can be from each other to be
 	combined.
      */
-	CV_WRAP virtual void duperizeWithAverage(float distance) = 0;
+	CV_WRAP virtual void duperizeWithAverage(const float distance) = 0;
 
 	/** @brief Combines adjacent superpixels into super-duper-pixels if they're similar enough in color.
 	
@@ -157,7 +157,7 @@ public:
 	@param distance The max distance the (normalized) color histograms of superpixels can be from each
 	other to be combined.
      */
-	CV_WRAP virtual void duperizeWithHistogram(int num_buckets[], float distance) = 0;
+	CV_WRAP virtual void duperizeWithHistogram(const int num_buckets[], const float distance) = 0;
 
 
 };

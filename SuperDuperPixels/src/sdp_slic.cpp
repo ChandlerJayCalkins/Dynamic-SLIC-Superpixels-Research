@@ -164,10 +164,10 @@ public:
 	//////////////////////////////////////////////////
 
 	// combines similar adjacent superpixels into super-duper-pixels using average colors of superpixels
-	virtual void duperizeWithAverage(float distance) CV_OVERRIDE;
+	virtual void duperizeWithAverage(const float distance) CV_OVERRIDE;
 
 	// combines similar adjacent superpixels into super-duper-pixels using (normalized) color histograms of superpixels
-	virtual void duperizeWithHistogram(int num_buckets[], float distance) CV_OVERRIDE;
+	virtual void duperizeWithHistogram(const int num_buckets[], const float distance) CV_OVERRIDE;
 
 
 protected:
@@ -266,9 +266,26 @@ private:
 		vector<int>& superpixel_population
 	);
 
+	inline void findSuperpixelNeighborsAndHistograms
+	(
+		const int num_buckets[],
+		vector< set<int> >& superpixel_neighbors,
+		vector< vector< vector<float> >>& superpixel_color_histograms,
+		vector<int>& superpixel_population
+	);
+
 	inline void addColorsToAverages
 	(
 		vector< vector<float> >& superpixel_average_colors,
+		const int current_superpixel,
+		const int x,
+		const int y
+	);
+
+	inline void addColorsToHistograms
+	(
+		const int num_buckets[],
+		vector< vector< vector<float> >>& superpixel_color_histograms,
 		const int current_superpixel,
 		const int x,
 		const int y
@@ -705,7 +722,7 @@ void SuperpixelSLICImpl::enforceLabelConnectivity( int min_element_size )
  * Combine adjacent superpixels into super-duper-pixels if they're similar enough in color.
  * Uses average colors of superpixels to determine if they're similar enough in color.
  */
-void SuperpixelSLICImpl::duperizeWithAverage(float max_distance)
+void SuperpixelSLICImpl::duperizeWithAverage(const float max_distance)
 {
 	// Graph of which superpixels are adjecent to each other
 	// First dimension is each superpixel
@@ -747,6 +764,45 @@ void SuperpixelSLICImpl::duperizeWithAverage(float max_distance)
 	m_numlabels = superduperpixel_count;
 }
 
+/*
+ * Combine adjacent superpixels into super-duper-pixels if they're similar enough in color.
+ * Uses (normalized) color histograms of superpixels to determine if they're similar enough in color.
+ */
+void SuperpixelSLICImpl::duperizeWithHistogram(const int num_buckets[], const float distance)
+{
+	// Graph of which superpixels are adjecent to each other
+	// First dimension is each superpixel
+	// Second dimension is index of each neighboring superpixel
+	vector< set<int> > superpixel_neighbors(m_numlabels);
+
+	// The number of pixels in each superpixel
+	vector<int> superpixel_population(m_numlabels, 0);
+
+	// Color histograms of each superpixel
+	// First dimension is each color channel
+	// Second dimension is each histogram basket
+	// Third dimension is each superpixel
+	vector< vector< vector<float> >> superpixel_color_histograms;
+
+	this->findSuperpixelNeighborsAndHistograms
+	(
+		num_buckets,
+		superpixel_neighbors,
+		superpixel_color_histograms,
+		superpixel_population
+	);
+
+	// Stores which super-duper-pixel each superpixel belong to
+	// super-duper-pixel value of -1 means it doesn't belong to a superduperpixel
+	vector<int> superduperpixel_connections(m_numlabels, -1);
+
+	// TODO: Treat each precentage histogram as a point in space and measure distances between them to group superpixels
+
+	// TODO: Change m_klabels so pixel labels use proper superduperpixel labels
+
+	// TODO: Resize m_numlabels after duperizing
+}
+
 void SuperpixelSLICImpl::findSuperpixelNeighborsAndAverages
 (
 	vector< set<int> >& superpixel_neighbors,
@@ -759,7 +815,7 @@ void SuperpixelSLICImpl::findSuperpixelNeighborsAndAverages
 	superpixel_population = vector<int>(m_numlabels, 0);
 	// Loop through each pixel
 	// Find superpixel connections
-	// Get average color and color histograms of superpixels
+	// Get average color of superpixels
 	for (int y = 0; y < m_height; y += 1)
 	for (int x = 0; x < m_width; x += 1)
 	{
@@ -779,6 +835,51 @@ void SuperpixelSLICImpl::findSuperpixelNeighborsAndAverages
 		for (int color_channel = 0; color_channel < m_nr_channels; color_channel += 1)
 		{
 			superpixel_average_colors[color_channel][superpixel] /= superpixel_population[superpixel];
+		}
+	}
+}
+
+void SuperpixelSLICImpl::findSuperpixelNeighborsAndHistograms
+(
+	const int num_buckets[],
+	vector< set<int> >& superpixel_neighbors,
+	vector< vector< vector<float> >>& superpixel_color_histograms,
+	vector<int>& superpixel_population
+)
+{
+	superpixel_neighbors = vector< set<int> >(m_numlabels);
+	superpixel_color_histograms = vector< vector< vector<float> >>(m_nr_channels);
+	for (int channel = 0; channel < m_nr_channels; channel += 1)
+	{
+		superpixel_color_histograms[channel].resize(num_buckets[channel], vector<float>(m_numlabels, 0.0));
+	}
+	superpixel_population = vector<int>(m_numlabels, 0);
+
+	// Loop through each pixel
+	// Find superpixel connections
+	// Get color histograms of superpixels
+	for (int y = 0; y < m_height; y += 1)
+	for (int x = 0; x < m_width; x += 1)
+	{
+		int current_superpixel = m_klabels.at<int>(y, x);
+		this->linkNeighborSuperpixels(superpixel_neighbors, current_superpixel, x, y);
+		// Keeps count of the number of pixels in each superpixel (for normalizing color histogram values to percentages)
+		superpixel_population[current_superpixel] += 1;
+		this->addColorsToHistograms(num_buckets, superpixel_color_histograms, current_superpixel, x, y);
+	}
+
+	// Loop through each superpixel
+	// Remove superpixels being connected to themselves
+	// Divide each superpixel color histogram value by the number of pixels in that superpixel to normalize them into percentages
+	for (int superpixel = 0; superpixel < m_numlabels; superpixel += 1)
+	{
+		superpixel_neighbors[superpixel].erase(superpixel);
+		for (int color_channel = 0; color_channel < m_nr_channels; color_channel += 1)
+		{
+			for (int bucket = 0; bucket < num_buckets[color_channel]; bucket += 1)
+			{
+				superpixel_color_histograms[color_channel][bucket][superpixel] /= superpixel_population[superpixel];
+			}
 		}
 	}
 }
@@ -854,6 +955,87 @@ void SuperpixelSLICImpl::addColorsToAverages
 				CV_Error( Error::StsInternal, "Invalid matrix depth" );
 				break;
 		}
+	}
+}
+
+void SuperpixelSLICImpl::addColorsToHistograms
+(
+	const int num_buckets[],
+	vector< vector< vector<float> >>& superpixel_color_histograms,
+	const int current_superpixel,
+	const int x,
+	const int y
+)
+{
+	// Get color histograms for each superpixel
+	for (int color_channel = 0; color_channel < m_nr_channels; color_channel += 1)
+	{
+		int bucket_index;
+		switch ( m_chvec[0].depth() )
+		{
+			case CV_8U:
+			{
+				int max = std::numeric_limits<uchar>::max();
+				int bucket_size = max / num_buckets[color_channel] + ((int) max % num_buckets[color_channel] != 0);
+				bucket_index = m_chvec[color_channel].at<uchar>(y, x) / bucket_size;
+				break;
+			}
+
+			case CV_8S:
+			{
+				int max = std::numeric_limits<char>::max();
+				int bucket_size = max / num_buckets[color_channel] + ((int) max % num_buckets[color_channel] != 0);
+				bucket_index = m_chvec[color_channel].at<char>(y, x) / bucket_size;
+				break;
+			}
+
+			case CV_16U:
+			{
+				int max = std::numeric_limits<ushort>::max();
+				int bucket_size = max / num_buckets[color_channel] + ((int) max % num_buckets[color_channel] != 0);
+				bucket_index = m_chvec[color_channel].at<ushort>(y, x) / bucket_size;
+				break;
+			}
+
+			case CV_16S:
+			{
+				int max = std::numeric_limits<short>::max();
+				int bucket_size = max / num_buckets[color_channel] + ((int) max % num_buckets[color_channel] != 0);
+				bucket_index = m_chvec[color_channel].at<short>(y, x) / bucket_size;
+				break;
+			}
+
+			case CV_32S:
+			{
+				int max = std::numeric_limits<int>::max();
+				int bucket_size = max / num_buckets[color_channel] + ((int) max % num_buckets[color_channel] != 0);
+				bucket_index = m_chvec[color_channel].at<int>(y, x) / bucket_size;
+				break;
+			}
+
+			case CV_32F:
+			{
+				// Assume range lies between 0 and 1 for values that are float types
+				bucket_index = ((int) (m_chvec[color_channel].at<float>(y, x) * num_buckets[color_channel]));
+				// Subtract 1 if the bucket index is too big (value of 1.0 * num_buckets would be out of bounds)
+				bucket_index -= (int) (bucket_index == num_buckets[color_channel]);
+				break;
+			}
+
+			case CV_64F:
+			{
+				// Assume range lies between 0 and 1 for values that are float types
+				bucket_index = ((int) (m_chvec[color_channel].at<double>(y, x) * num_buckets[color_channel]));
+				// Subtract 1 if the bucket index is too big (value of 1.0 * num_buckets would be out of bounds)
+				bucket_index -= (int) (bucket_index == num_buckets[color_channel]);
+				break;
+			}
+
+			default:
+				CV_Error( Error::StsInternal, "Invalid matrix depth" );
+				break;
+		}
+		superpixel_color_histograms[color_channel][bucket_index][current_superpixel] += 1;
 	}
 }
 
@@ -947,7 +1129,6 @@ void SuperpixelSLICImpl::combineIntoSuperDuperPixel
 	const int neighbor
 )
 {
-	// TODO: split this method up a bit more
 	if (superduperpixel_pointers[neighbor] == NULL)
 	{
 		if (superduperpixel_pointers[superpixel] == NULL)
@@ -1014,156 +1195,6 @@ void SuperpixelSLICImpl::assignSuperduperpixels(const vector<int>& superduperpix
 	{
 		m_klabels.at<int>(y, x) = superduperpixel_indexes[m_klabels.at<int>(y, x)];
 	}
-}
-
-/*
- * Combine adjacent superpixels into super-duper-pixels if they're similar enough in color.
- * Uses (normalized) color histograms of superpixels to determine if they're similar enough in color.
- */
-void SuperpixelSLICImpl::duperizeWithHistogram(int num_buckets[], float distance)
-{
-	// Graph of which superpixels are adjecent to each other
-	// First dimension is each superpixel
-	// Second dimension is index of each neighboring superpixel
-	vector< set<int> > superpixel_neighbors(m_numlabels);
-
-	// The number of pixels in each superpixel
-	vector<int> superpixel_population(m_numlabels, 0);
-
-	// Color histograms of each superpixel
-	// First dimension is each color channel
-	// Second dimension is each histogram basket
-	// Third dimension is each superpixel
-	vector< vector< vector<float> >> superpixel_color_histograms;
-
-	// Stores which super-duper-pixel each superpixel belong to
-	// super-duper-pixel value of -1 means it doesn't belong to a superduperpixel
-	vector<int> superduperpixel_connections(m_numlabels, -1);
-
-	// Initialize all dimentions of color histograms
-	superpixel_color_histograms.resize(m_nr_channels);
-	for (int channel = 0; channel < m_nr_channels; channel += 1)
-	{
-		superpixel_color_histograms[channel].resize(num_buckets[channel], vector<float>(m_numlabels, 0.0));
-	}
-
-	// Loop through each pixel
-	// Find superpixel connections
-	// Get average color and color histograms of superpixels
-	for (int y = 0; y < m_height; y += 1)
-	for (int x = 0; x < m_width; x += 1)
-	{
-		int current_superpixel = m_klabels.at<int>(y, x);
-
-		// Create connections between adjacent superpixels based on where adjacent pixels are
-		// in different superpixels
-		bool not_left_column = x > 0;
-		bool not_top_row = y > 0;
-		if (not_left_column)
-		{
-			int superpixel_to_left = m_klabels.at<int>(y, x - 1);
-			superpixel_neighbors[current_superpixel].insert(superpixel_to_left);
-			superpixel_neighbors[superpixel_to_left].insert(current_superpixel);
-		}
-		if (not_top_row)
-		{
-			int superpixel_above = m_klabels.at<int>(y - 1, x);
-			superpixel_neighbors[current_superpixel].insert(superpixel_above);
-			superpixel_neighbors[superpixel_above].insert(current_superpixel);
-		}
-
-		// Keeps count of the number of pixels in each superpixel (for calculating average color)
-		superpixel_population[current_superpixel] += 1;
-
-		// Get average colors and color histograms for each superpixel
-		for (int color_channel = 0; color_channel < m_nr_channels; color_channel += 1)
-		{
-			int bucket_index;
-			switch ( m_chvec[0].depth() )
-			{
-				case CV_8U:
-				{
-					int max = std::numeric_limits<uchar>::max();
-					int bucket_size = max / num_buckets[color_channel] + ((int) max % num_buckets[color_channel] != 0);
-					bucket_index = m_chvec[color_channel].at<uchar>(y, x) / bucket_size;
-					break;
-				}
-
-				case CV_8S:
-				{
-					int max = std::numeric_limits<char>::max();
-					int bucket_size = max / num_buckets[color_channel] + ((int) max % num_buckets[color_channel] != 0);
-					bucket_index = m_chvec[color_channel].at<char>(y, x) / bucket_size;
-					break;
-				}
-
-				case CV_16U:
-				{
-					int max = std::numeric_limits<ushort>::max();
-					int bucket_size = max / num_buckets[color_channel] + ((int) max % num_buckets[color_channel] != 0);
-					bucket_index = m_chvec[color_channel].at<ushort>(y, x) / bucket_size;
-					break;
-				}
-
-				case CV_16S:
-				{
-					int max = std::numeric_limits<short>::max();
-					int bucket_size = max / num_buckets[color_channel] + ((int) max % num_buckets[color_channel] != 0);
-					bucket_index = m_chvec[color_channel].at<short>(y, x) / bucket_size;
-					break;
-				}
-
-				case CV_32S:
-				{
-					int max = std::numeric_limits<int>::max();
-					int bucket_size = max / num_buckets[color_channel] + ((int) max % num_buckets[color_channel] != 0);
-					bucket_index = m_chvec[color_channel].at<int>(y, x) / bucket_size;
-					break;
-				}
-
-				case CV_32F:
-				{
-					// Assume range lies between 0 and 1 for values that are float types
-					bucket_index = ((int) (m_chvec[color_channel].at<float>(y, x) * num_buckets[color_channel]));
-					// Subtract 1 if the bucket index is too big (value of 1.0 * num_buckets would be out of bounds)
-					bucket_index -= (int) (bucket_index == num_buckets[color_channel]);
-					break;
-				}
-
-				case CV_64F:
-				{
-					// Assume range lies between 0 and 1 for values that are float types
-					bucket_index = ((int) (m_chvec[color_channel].at<double>(y, x) * num_buckets[color_channel]));
-					// Subtract 1 if the bucket index is too big (value of 1.0 * num_buckets would be out of bounds)
-					bucket_index -= (int) (bucket_index == num_buckets[color_channel]);
-					break;
-				}
-
-				default:
-					CV_Error( Error::StsInternal, "Invalid matrix depth" );
-					break;
-			}
-			superpixel_color_histograms[color_channel][bucket_index][current_superpixel] += 1;
-		}
-	}
-	
-	// Loop through each superpixel
-	// Remove superpixels being connected to themselves
-	// Divide each superpixel average color value by the number of pixels in that superpixel to get the actual average
-	for (int superpixel = 0; superpixel < m_numlabels; superpixel += 1)
-	{
-		superpixel_neighbors[superpixel].erase(superpixel);
-		for (int color_channel = 0; color_channel < m_nr_channels; color_channel += 1)
-		{
-			// TODO: Change histogram buckets from counts to percentages for comparisons to other histograms
-		}
-	}
-
-	// TODO: Treat each precentage histogram as a point in space and measure distances between them to group superpixels
-
-	// TODO: Change m_klabels so pixel labels use proper superduperpixel labels
-
-	// TODO: Resize m_numlabels after duperizing
 }
 
 /*
