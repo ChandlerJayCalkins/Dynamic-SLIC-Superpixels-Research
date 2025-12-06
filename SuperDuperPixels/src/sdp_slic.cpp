@@ -1237,6 +1237,7 @@ float SuperpixelSLICImpl::getColorDistance
 	const int neighbor
 )
 {
+	// TODO: Fix this
 	// if (superduperpixel_pointers[neighbor] != NULL)
 	// 	return (*superduperpixel_pointers[neighbor]).distance_from(average_colors);
 
@@ -1267,6 +1268,7 @@ float SuperpixelSLICImpl::getColorDistance
 	const int neighbor
 )
 {
+	// TODO: Fix this
 	// if (superduperpixel_pointers[neighbor] != NULL)
 	// 	return (*superduperpixel_pointers[neighbor]).distance_from(color_histogram);
 
