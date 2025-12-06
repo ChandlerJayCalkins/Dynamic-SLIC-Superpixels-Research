@@ -12,6 +12,7 @@
 #endif
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 // #include <opencv2/ximgproc/slic.hpp>
 #include "sdp_slic.hpp"
 using namespace cv;
@@ -42,6 +43,9 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	Mat cielab_image;
+	cvtColor(input_image, cielab_image, COLOR_RGB2Lab);
+
 	// Creates window to display output to
 	const String window_name = "Superpixels";
 	namedWindow(window_name);
@@ -50,33 +54,13 @@ int main(int argc, char* argv[])
 	const float smoothness = 100.0f; // Default: 10.0
 	const int min_superpixel_size_percent = 4;
 	// Ptr<ximgproc::SuperpixelSLIC> slic = ximgproc::createSuperpixelSLIC(input_image, ximgproc::SLIC, avg_superpixel_size, smoothness);
-	Ptr<SuperpixelSLIC> slic = createSuperpixelSLIC(input_image, SLIC, avg_superpixel_size, smoothness);
+	Ptr<SuperpixelSLIC> slic = createSuperpixelSLIC(cielab_image, SLIC, avg_superpixel_size, smoothness);
 	slic->iterate(1);
 	slic->enforceLabelConnectivity(min_superpixel_size_percent);
 	// 50.0 good for aguilles_rogues, 32.0 good for cosmo
-	// slic->duperizeWithAverage(50.0);
-	const int num_buckets[] = {16, 16, 16};
-	slic->duperizeWithHistogram(num_buckets, 2.15f);
-
-	// // Gets 2D array of the superpixel each pixel is a part of
-	// Mat labels;
-	// slic->getLabels(labels);
-	// int superpixel_count = slic->getNumberOfSuperpixels();
-
-	// // Counts how many pixels are in each superpixel
-	// unsigned long* pixel_count = (unsigned long*) calloc(superpixel_count, sizeof(unsigned long));
-	// for (int row = 0; row < labels.rows; row += 1)
-	// {
-	// 	for (int col = 0; col < labels.cols; col += 1)
-	// 	{
-	// 		pixel_count[labels.at<int>(row, col)] += 1;
-	// 	}
-	// }
-	// // Prints out the pixel count of each superpixel
-	// for (int i = 0; i < superpixel_count; i += 1)
-	// {
-	// 	std::cout << i << ": " << pixel_count[i] << std::endl;
-	// }
+	slic->duperizeWithAverage(30.0);
+	// const int num_buckets[] = {16, 16, 16};
+	// slic->duperizeWithHistogram(num_buckets, 2.0f);
 
 	// Gets overlay image of superpixels
 	Mat superpixels;

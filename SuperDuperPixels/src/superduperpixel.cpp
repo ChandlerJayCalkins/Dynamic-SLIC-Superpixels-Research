@@ -64,7 +64,7 @@ float SuperDuperPixel::distance_from(const std::vector< std::vector<float> >& hi
 
 void SuperDuperPixel::add_superpixel(int superpixel, const std::vector<float>& average, int pixel_count)
 {
-	assert(this->average.size() == average->size());
+	assert(this->average.size() == average.size());
 	this->superpixels.push_back(superpixel);
 	int new_pixel_count = this->pixel_count + pixel_count;
 	for (int color_channel = 0; color_channel < this->average.size(); color_channel += 1)
@@ -78,12 +78,12 @@ void SuperDuperPixel::add_superpixel(int superpixel, const std::vector<float>& a
 
 void SuperDuperPixel::add_superpixel(int superpixel, const std::vector< std::vector<float> >& histogram, int pixel_count)
 {
-	assert(this->histogram.size() == histogram->size());
+	assert(this->histogram.size() == histogram.size());
 	this->superpixels.push_back(superpixel);
 	int new_pixel_count = this->pixel_count + pixel_count;
 	for (int color_channel = 0; color_channel < this->histogram.size(); color_channel += 1)
 	{
-		assert(this->histogram[color_channel].size() == other->histogram[color_channel].size());
+		assert(this->histogram[color_channel].size() == histogram[color_channel].size());
 		for (int bucket = 0; bucket < this->histogram[color_channel].size(); bucket += 1)
 		{
 			float this_sum = this->histogram[color_channel][bucket] * this->pixel_count;
